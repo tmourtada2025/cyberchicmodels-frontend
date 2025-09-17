@@ -41,5 +41,5 @@ export function AdminPage() {
     return <AdminLogin onLogin={handleLogin} />;
   }
 
-  return <AdminDashboard onLogout={handleLogout} />;
+  return <AdminDashboardEnhanced onLogout={handleLogout} />
 }
