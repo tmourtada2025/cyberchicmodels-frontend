@@ -18,156 +18,38 @@ import { Footer } from './components/Footer';
 import { ModelCard } from './components/ModelCard';
 import { ModelDetailModal } from './components/ModelDetailModal';
 import { StylesCarousel } from './components/StylesCarousel';
-import { supabase } from './lib/supabase';
-import { getStorageUrl } from './lib/storage';
-import type { Model, Style } from './lib/supabase';
-
-const fallbackStyles = [
-  {
-    id: "ST126",
-    slug: 'emerald-green-satin-dress',
-    name: "Emerald Green Satin Dress",
-    price_usd: 1.99,
-    image_path: null,
-    description: "A glamorous emerald green satin dress with a sleek silhouette",
-    created_at: new Date().toISOString()
-  },
-  {
-    id: "ST119",
-    name: "White Tank & Short Jeans",
-    price_usd: 1.99,
-    image_path: null,
-    description: "A casual white tank top paired with denim shorts"
-  },
-  {
-    id: "ST120",
-    name: "White Wide-Leg Jumpsuit",
-    price_usd: 1.99,
-    image_path: null,
-    description: "A white wide-leg jumpsuit with modern cut"
-  },
-  {
-    id: "ST118",
-    name: "White Pleated Café Dress",
-    price_usd: 1.99,
-    image_path: null,
-    description: "A casual white pleated dress perfect for café outings"
-  },
-  {
-    id: "ST111",
-    name: "Black Faux-Leather Mini Dress",
-    price_usd: 1.99,
-    image_path: null,
-    description: "A stylish black faux-leather mini dress"
-  },
-  {
-    id: "ST122",
-    name: "Burnt Orange Boho Maxi Dress",
-    price_usd: 1.99,
-    image_path: null,
-    description: "A burnt orange maxi dress with boho vibes"
-  }
-];
+import { apiService } from './lib/api';
+import type { Model, Style } from './lib/api';
 
 function App() {
-  const [featuredModels, setFeaturedModels] = useState<any[]>([]);
-  const [featuredStyles, setFeaturedStyles] = useState<any[]>([]);
-  const [selectedModel, setSelectedModel] = useState<any>(null);
+  const [featuredModels, setFeaturedModels] = useState<Model[]>([]);
+  const [featuredStyles, setFeaturedStyles] = useState<Style[]>([]);
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch featured content from Supabase
+  // Fetch featured content from API
   useEffect(() => {
     const fetchFeaturedContent = async () => {
-      // Check if Supabase is properly configured
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !supabaseKey || supabaseKey.includes('REPLACE_WITH_YOUR_ACTUAL')) {
-        console.warn('Supabase not configured properly. Using fallback data.');
-        setFeaturedModels([]);
-        setFeaturedStyles(fallbackStyles.slice(0, 6).map(style => ({
-          id: style.id,
-          name: style.name,
-          price: style.price_usd || 1.99,
-          image: style.image_path || '',
-          description: style.description || ''
-        })));
-        setLoading(false);
-        return;
-      }
-
       try {
-        // Fetch featured models
-        const { data: modelsData, error: modelsError } = await supabase
-          .from('models')
-          .select('*')
-          .or('is_new.eq.true,is_popular.eq.true,is_coming_soon.eq.true,is_featured.eq.true')
-          .order('created_at', { ascending: false })
-          .limit(50);
+        setLoading(true);
+        setError(null);
 
-        // Fetch featured styles
-        const { data: stylesData, error: stylesError } = await supabase
-          .from('styles')
-          .select('*')
-          .limit(6);
+        // Fetch featured models and styles in parallel
+        const [modelsData, stylesData] = await Promise.all([
+          apiService.getModels({ featured: true, limit: 6 }).catch(() => []),
+          apiService.getStyles({ limit: 6 }).catch(() => [])
+        ]);
 
-        if (modelsError) {
-          console.error('Error fetching featured models:', modelsError);
-          setFeaturedModels([]);
-        } else {
-          setFeaturedModels((modelsData || []).map(model => ({
-            id: model.id,
-            slug: model.slug,
-            name: model.name,
-            tagline: model.tagline,
-            age: model.age,
-            nationality: model.nationality,
-            ethnicity: model.ethnicity,
-            gender: model.gender,
-            height: model.height,
-            weight: model.weight,
-            specialty: model.specialty, // Keep for backward compatibility
-            specialties: model.specialties, // New array field
-            bio: model.bio,
-            hobbies: model.hobbies,
-            image: model.thumbnail_path ? getStorageUrl('models', model.thumbnail_path) : '',
-            video: '',
-            isPopular: model.is_popular,
-            isNew: model.is_new,
-            isComingSoon: model.is_coming_soon,
-            isFeatured: model.is_featured
-          })));
-        }
+        setFeaturedModels(modelsData);
+        setFeaturedStyles(stylesData);
 
-        if (stylesError) {
-          console.error('Error fetching featured styles:', stylesError);
-          setFeaturedStyles(fallbackStyles.map(style => ({
-            id: style.id,
-            name: style.name,
-            price: style.price_usd,
-            image: style.image_path,
-            description: style.description
-          })));
-        } else {
-          setFeaturedStyles((stylesData || []).map(style => ({
-            id: style.id,
-            name: style.name,
-            price: style.price_usd,
-            image: style.image_path,
-            description: style.description
-          })));
-        }
-      } catch (error) {
-        console.error('Error fetching featured content:', error);
+      } catch (err) {
+        console.error('Error fetching featured content:', err);
+        setError('Failed to load content');
+        // Set empty arrays as fallback
         setFeaturedModels([]);
-        // Use fallback styles on error
-        setFeaturedStyles(fallbackStyles.slice(0, 6).map(style => ({
-          id: style.id,
-          name: style.name,
-          price: style.price_usd || 1.99,
-          image: style.image_path || '',
-          description: style.description || ''
-        })));
+        setFeaturedStyles([]);
       } finally {
         setLoading(false);
       }
@@ -176,7 +58,7 @@ function App() {
     fetchFeaturedContent();
   }, []);
 
-  const handleModelClick = (model: any) => {
+  const handleModelClick = (model: Model) => {
     setSelectedModel(model);
   };
 
@@ -208,27 +90,41 @@ function App() {
               <div className="py-12 px-4">
                 <div className="max-w-7xl mx-auto">
                   <h2 className="text-3xl font-serif mb-8 text-center">Featured Models</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {featuredModels.slice(0, 3).map(model => (
-                      <ModelCard 
-                        key={model.id} 
-                        model={model} 
-                        onModelClick={handleModelClick}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-6 text-center">
-                    <Link 
-                      to="/models"
-                      className="inline-flex items-center text-black hover:text-rose-500 transition"
-                    >
-                      View All Models
-                      <ChevronRight className="ml-2 h-5 w-5" />
-                    </Link>
-                  </div>
-                  {featuredModels.length === 0 && !loading && (
-                    <div className="text-center py-8">
-                      <p className="text-gray-600">No featured models found</p>
+                  
+                  {loading ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-12">
+                      <p className="text-gray-600 mb-4">Unable to load models at the moment</p>
+                      <p className="text-sm text-gray-500">Please check back later</p>
+                    </div>
+                  ) : featuredModels.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {featuredModels.slice(0, 3).map(model => (
+                          <ModelCard 
+                            key={model.id} 
+                            model={model} 
+                            onModelClick={handleModelClick}
+                          />
+                        ))}
+                      </div>
+                      <div className="mt-6 text-center">
+                        <Link 
+                          to="/models"
+                          className="inline-flex items-center text-black hover:text-rose-500 transition"
+                        >
+                          View All Models
+                          <ChevronRight className="ml-2 h-5 w-5" />
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-12">
+                      <p className="text-gray-600 mb-4">No featured models available</p>
+                      <p className="text-sm text-gray-500">New models coming soon!</p>
                     </div>
                   )}
                 </div>
@@ -240,16 +136,26 @@ function App() {
                   <div className="flex flex-col items-center mb-8">
                     <h2 className="text-3xl font-serif text-white text-center mb-4">Featured Styles & Digital Couture</h2>
                   </div>
-                  <StylesCarousel styles={featuredStyles} />
-                  <div className="mt-8 text-center">
-                    <Link
-                      to="/styles"
-                      className="inline-flex items-center justify-center px-8 py-3 bg-white text-black rounded-full hover:bg-opacity-90 transition-colors"
-                    >
-                      Explore All Styles
-                      <ChevronRight className="ml-2 h-5 w-5" />
-                    </Link>
-                  </div>
+                  
+                  {featuredStyles.length > 0 ? (
+                    <>
+                      <StylesCarousel styles={featuredStyles} />
+                      <div className="mt-8 text-center">
+                        <Link
+                          to="/styles"
+                          className="inline-flex items-center justify-center px-8 py-3 bg-white text-black rounded-full hover:bg-opacity-90 transition-colors"
+                        >
+                          Explore All Styles
+                          <ChevronRight className="ml-2 h-5 w-5" />
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-12">
+                      <p className="text-white mb-4">No styles available</p>
+                      <p className="text-sm text-gray-300">New styles coming soon!</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -5,24 +5,11 @@ import { addLike } from '../store/likesSlice';
 import { toggleFavorite } from '../store/favoritesSlice';
 import { RootState } from '../store/store';
 
+import type { Model } from '../lib/api';
+
 interface ModelCardProps {
-  model: {
-    id: string;
-    name: string;
-    age: number;
-    nationality: string;
-    height: string;
-    weight: string;
-    specialty: string;
-    hobbies: string;
-    image: string;
-    video: string;
-    isPopular?: boolean;
-    isNew?: boolean;
-    isComingSoon?: boolean;
-    tagline?: string;
-  };
-  onModelClick: (model: any) => void;
+  model: Model;
+  onModelClick: (model: Model) => void;
 }
 
 export function ModelCard({ model, onModelClick }: ModelCardProps) {
@@ -45,8 +32,8 @@ export function ModelCard({ model, onModelClick }: ModelCardProps) {
     dispatch(toggleFavorite({
       id: model.id,
       name: model.name,
-      image: model.image,
-      specialty: model.specialty
+      image: model.thumbnail_url || '',
+      specialty: model.specialties?.[0] || model.specialty || ''
     }));
   };
 
@@ -79,7 +66,7 @@ export function ModelCard({ model, onModelClick }: ModelCardProps) {
       
       <div className="relative w-full h-full">
         <img 
-          src={model.image}
+          src={model.thumbnail_url || ''}
           alt={model.name}
           className="w-full h-full object-cover rounded-lg"
         />
