@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLogin } from './AdminLogin';
-import { AdminDashboard } from './AdminDashboard';
+import { AdminDashboardEnhanced } from './AdminDashboardEnhanced';
 import { supabase } from '../lib/supabase';
 
 export function AdminPage() {
