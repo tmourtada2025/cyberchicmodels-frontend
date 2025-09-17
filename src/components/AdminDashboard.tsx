@@ -1,80 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Palette, 
-  BarChart3, 
-  Settings, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Upload, 
-  Save, 
-  X, 
-  AlertTriangle,
-  CheckCircle,
-  LogOut,
-  Image as ImageIcon,
-  MessageCircle
-} from 'lucide-react';
+import { Users, Palette, Image, BarChart3, Bot, Settings, Plus, LogOut, X } from 'lucide-react';
 import { apiService } from '../lib/api';
-import type { Model, Style, HeroSlide } from '../lib/api';
+import type { Model, Style } from '../lib/api';
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-interface Tab {
-  id: string;
-  name: string;
-  icon: React.ComponentType<any>;
-}
-
-const tabs: Tab[] = [
-  { id: 'models', name: 'Models', icon: Users },
-  { id: 'styles', name: 'Styles', icon: Palette },
-  { id: 'hero', name: 'Hero Slides', icon: ImageIcon },
-  { id: 'analytics', name: 'Analytics', icon: BarChart3 },
-  { id: 'chat', name: 'AI Assistant', icon: MessageCircle },
-  { id: 'settings', name: 'Settings', icon: Settings },
-];
-
 export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState('models');
   const [models, setModels] = useState<Model[]>([]);
   const [styles, setStyles] = useState<Style[]>([]);
-  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [heroSlides, setHeroSlides] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  
+  // Modal states
+  const [showAddModel, setShowAddModel] = useState(false);
+  const [showAddStyle, setShowAddStyle] = useState(false);
+  const [showAddSlide, setShowAddSlide] = useState(false);
 
-  // Load data based on active tab
   useEffect(() => {
     loadData();
-  }, [activeTab]);
+  }, []);
 
   const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    
     try {
-      switch (activeTab) {
-        case 'models':
-          const modelsData = await apiService.getModels({ limit: 100 });
-          setModels(modelsData);
-          break;
-        case 'styles':
-          const stylesData = await apiService.getStyles({ limit: 100 });
-          setStyles(stylesData);
-          break;
-        case 'hero':
-          const heroData = await apiService.getHeroSlides();
-          setHeroSlides(heroData);
-          break;
-        default:
-          break;
-      }
+      setLoading(true);
+      const [modelsData, stylesData, slidesData] = await Promise.all([
+        apiService.getModels().catch(() => []),
+        apiService.getStyles().catch(() => []),
+        apiService.getHeroSlides().catch(() => [])
+      ]);
+      
+      setModels(modelsData);
+      setStyles(stylesData);
+      setHeroSlides(slidesData);
     } catch (err) {
-      console.error('Error loading data:', err);
       setError('Failed to load data. Backend API may not be connected yet.');
     } finally {
       setLoading(false);
@@ -91,11 +54,150 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setTimeout(() => setError(null), 5000);
   };
 
+  // Add Model Modal Component
+  const AddModelModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Add New Model</h3>
+          <button onClick={() => setShowAddModel(false)} className="text-gray-500 hover:text-gray-700">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          showSuccess('Model creation feature will be available once backend is connected');
+          setShowAddModel(false);
+        }}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Model Name</label>
+              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter model name" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
+              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter nationality" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+              <input type="number" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter age" />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 mt-6">
+            <button type="button" onClick={() => setShowAddModel(false)} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+              Cancel
+            </button>
+            <button type="submit" className="px-4 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
+              Create Model
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
+  // Add Style Modal Component
+  const AddStyleModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Add New Style</h3>
+          <button onClick={() => setShowAddStyle(false)} className="text-gray-500 hover:text-gray-700">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          showSuccess('Style creation feature will be available once backend is connected');
+          setShowAddStyle(false);
+        }}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Style Name</label>
+              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter style name" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Clothing Type</label>
+              <select className="w-full border border-gray-300 rounded-md px-3 py-2">
+                <option value="">Select type</option>
+                <option value="dress">Dress</option>
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+                <option value="outerwear">Outerwear</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
+              <input type="number" step="0.01" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1.99" />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 mt-6">
+            <button type="button" onClick={() => setShowAddStyle(false)} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+              Cancel
+            </button>
+            <button type="submit" className="px-4 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
+              Create Style
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
+  // Add Slide Modal Component
+  const AddSlideModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Add New Hero Slide</h3>
+          <button onClick={() => setShowAddSlide(false)} className="text-gray-500 hover:text-gray-700">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          showSuccess('Hero slide creation feature will be available once backend is connected');
+          setShowAddSlide(false);
+        }}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter slide title" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter subtitle" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter button text" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Button Link</label>
+              <input type="url" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter button URL" />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 mt-6">
+            <button type="button" onClick={() => setShowAddSlide(false)} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+              Cancel
+            </button>
+            <button type="submit" className="px-4 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
+              Create Slide
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
   const renderModelsTab = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Models Management</h2>
-        <button className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 transition-colors flex items-center">
+        <button 
+          onClick={() => setShowAddModel(true)}
+          className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 transition-colors flex items-center"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add New Model
         </button>
@@ -115,29 +217,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {models.map(model => (
             <div key={model.id} className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">{model.name}</h3>
-                <div className="flex space-x-2">
-                  <button className="text-blue-500 hover:text-blue-600">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button className="text-red-500 hover:text-red-600">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              {model.thumbnail_url && (
-                <img
-                  src={model.thumbnail_url}
-                  alt={model.name}
-                  className="w-full h-32 object-cover rounded-lg mb-4"
-                />
-              )}
-              <div className="space-y-2 text-sm text-gray-600">
-                {model.age && <p>Age: {model.age}</p>}
-                {model.nationality && <p>Nationality: {model.nationality}</p>}
-                {model.specialties && <p>Specialties: {model.specialties.join(', ')}</p>}
-              </div>
+              <h3 className="text-lg font-semibold">{model.name}</h3>
+              <p className="text-gray-600">{model.nationality}</p>
             </div>
           ))}
         </div>
@@ -149,7 +230,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Styles Management</h2>
-        <button className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 transition-colors flex items-center">
+        <button 
+          onClick={() => setShowAddStyle(true)}
+          className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 transition-colors flex items-center"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add New Style
         </button>
@@ -169,29 +253,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {styles.map(style => (
             <div key={style.id} className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">{style.name}</h3>
-                <div className="flex space-x-2">
-                  <button className="text-blue-500 hover:text-blue-600">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button className="text-red-500 hover:text-red-600">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              {style.image_url && (
-                <img
-                  src={style.image_url}
-                  alt={style.name}
-                  className="w-full h-32 object-cover rounded-lg mb-4"
-                />
-              )}
-              <div className="space-y-2 text-sm text-gray-600">
-                <p>Price: ${style.price_usd?.toFixed(2) || '1.99'}</p>
-                {style.clothing_type && <p>Type: {style.clothing_type}</p>}
-                {style.colors && <p>Colors: {style.colors.join(', ')}</p>}
-              </div>
+              <h3 className="text-lg font-semibold">{style.name}</h3>
+              <p className="text-gray-600">${style.price_usd}</p>
             </div>
           ))}
         </div>
@@ -199,11 +262,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     </div>
   );
 
-  const renderHeroTab = () => (
+  const renderHeroSlidesTab = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Hero Slides Management</h2>
-        <button className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 transition-colors flex items-center">
+        <button 
+          onClick={() => setShowAddSlide(true)}
+          className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 transition-colors flex items-center"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add New Slide
         </button>
@@ -215,33 +281,16 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </div>
       ) : heroSlides.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600 mb-4">No hero slides found</p>
           <p className="text-sm text-gray-500">Hero slides will appear here once the backend API is connected</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {heroSlides.map(slide => (
             <div key={slide.id} className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">{slide.title}</h3>
-                <div className="flex space-x-2">
-                  <button className="text-blue-500 hover:text-blue-600">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button className="text-red-500 hover:text-red-600">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              {slide.subtitle && <p className="text-gray-600 mb-2">{slide.subtitle}</p>}
-              {slide.description && <p className="text-gray-700 mb-4">{slide.description}</p>}
-              <div className="flex items-center space-x-4">
-                <span className="bg-rose-100 text-rose-800 px-2 py-1 rounded text-sm">
-                  {slide.button_text}
-                </span>
-                <span className="text-sm text-gray-500">→ {slide.button_link}</span>
-              </div>
+              <h3 className="text-lg font-semibold">{slide.title}</h3>
+              <p className="text-gray-600">{slide.subtitle}</p>
             </div>
           ))}
         </div>
@@ -249,178 +298,156 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     </div>
   );
 
-  const renderChatTab = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">AI Assistant Chat</h2>
-      </div>
-      
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="text-center py-12">
-          <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">AI Assistant Chat Interface</p>
-          <p className="text-sm text-gray-500 mb-6">
-            This will be your embedded chat interface with the AI assistant for managing models, 
-            generating collections, and automating workflows.
-          </p>
-          <div className="bg-gray-50 rounded-lg p-4 text-left">
-            <p className="text-sm text-gray-600 mb-2">Example commands you'll be able to use:</p>
-            <ul className="text-sm text-gray-500 space-y-1">
-              <li>• "Generate a new model with Nordic features"</li>
-              <li>• "Create a minimalist collection for Elīna"</li>
-              <li>• "Analyze trending styles and create new models"</li>
-              <li>• "Extract outfits from the latest collection"</li>
-              <li>• "Generate TikTok videos for top 3 models"</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderAnalyticsTab = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold mb-2">Total Models</h3>
-          <p className="text-3xl font-bold text-rose-500">{models.length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold mb-2">Total Styles</h3>
-          <p className="text-3xl font-bold text-blue-500">{styles.length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold mb-2">Hero Slides</h3>
-          <p className="text-3xl font-bold text-green-500">{heroSlides.length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold mb-2">API Status</h3>
-          <p className="text-sm text-gray-500">Backend Pending</p>
-        </div>
-      </div>
-    </div>
-  );
-
   const renderSettingsTab = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Settings</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Settings</h2>
+        <button 
+          onClick={onLogout}
+          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Logout
+        </button>
+      </div>
+
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold mb-4">API Configuration</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              API Base URL
-            </label>
-            <input
-              type="text"
-              value={import.meta.env.VITE_API_BASE_URL || ''}
+            <label className="block text-sm font-medium text-gray-700 mb-1">API Base URL</label>
+            <input 
+              type="text" 
+              value="https://cyberchicmodels-api-719300876829.us-central1.run.app"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
               readOnly
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Google Cloud Storage URL
-            </label>
-            <input
-              type="text"
-              value={import.meta.env.VITE_GCS_BUCKET_URL || ''}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Google Cloud Storage URL</label>
+            <input 
+              type="text" 
+              value="https://storage.googleapis.com/cyberchicmodels-media"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
               readOnly
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
             />
           </div>
-          <p className="text-sm text-gray-500">
-            Environment variables are configured in your deployment settings.
-          </p>
         </div>
+        <p className="text-sm text-gray-500 mt-4">Environment variables are configured in your deployment settings.</p>
       </div>
     </div>
-  );
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'models':
-        return renderModelsTab();
-      case 'styles':
-        return renderStylesTab();
-      case 'hero':
-        return renderHeroTab();
-      case 'analytics':
-        return renderAnalyticsTab();
-      case 'chat':
-        return renderChatTab();
-      case 'settings':
-        return renderSettingsTab();
-      default:
-        return renderModelsTab();
-    }
-  };
+   );
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <h1 className="text-xl font-semibold">CyberChicModels.ai Admin</h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Success/Error Messages */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4 mx-6 mt-6">
+          ⚠️ {error}
+        </div>
+      )}
+      
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md mb-4 mx-6 mt-6">
+          ✅ {success}
+        </div>
+      )}
+
+      <div className="flex">
+        {/* Sidebar */}
+        <div className="w-64 bg-white shadow-lg min-h-screen">
+          <div className="p-6">
+            <h1 className="text-xl font-bold text-gray-800">Admin Dashboard</h1>
+          </div>
+          
+          <nav className="mt-6">
             <button
-              onClick={onLogout}
-              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+              onClick={() => setActiveTab('models')}
+              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
+                activeTab === 'models' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
+              }`}
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
+              <Users className="w-5 h-5 mr-3" />
+              Models
             </button>
-          </div>
+            
+            <button
+              onClick={() => setActiveTab('styles')}
+              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
+                activeTab === 'styles' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
+              }`}
+            >
+              <Palette className="w-5 h-5 mr-3" />
+              Styles
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('hero-slides')}
+              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
+                activeTab === 'hero-slides' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
+              }`}
+            >
+              <Image className="w-5 h-5 mr-3" />
+              Hero Slides
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
+                activeTab === 'analytics' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5 mr-3" />
+              Analytics
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('ai-assistant')}
+              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
+                activeTab === 'ai-assistant' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
+              }`}
+            >
+              <Bot className="w-5 h-5 mr-3" />
+              AI Assistant
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
+                activeTab === 'settings' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
+              }`}
+            >
+              <Settings className="w-5 h-5 mr-3" />
+              Settings
+            </button>
+          </nav>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-8">
+          {activeTab === 'models' && renderModelsTab()}
+          {activeTab === 'styles' && renderStylesTab()}
+          {activeTab === 'hero-slides' && renderHeroSlidesTab()}
+          {activeTab === 'settings' && renderSettingsTab()}
+          {activeTab === 'analytics' && (
+            <div className="text-center py-12">
+              <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Analytics dashboard coming soon</p>
+            </div>
+          )}
+          {activeTab === 'ai-assistant' && (
+            <div className="text-center py-12">
+              <Bot className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">AI Assistant features coming soon</p>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar */}
-          <div className="lg:w-64 flex-shrink-0">
-            <nav className="space-y-2">
-              {tabs.map(tab => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
-                      activeTab === tab.id
-                        ? 'bg-rose-500 text-white'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5 mr-3" />
-                    {tab.name}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1">
-            {/* Status Messages */}
-            {error && (
-              <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
-                <AlertTriangle className="w-5 h-5 text-red-500 mr-3" />
-                <span className="text-red-700">{error}</span>
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                <span className="text-green-700">{success}</span>
-              </div>
-            )}
-
-            {renderTabContent()}
-          </div>
-        </div>
-      </div>
+      {/* Modals */}
+      {showAddModel && <AddModelModal />}
+      {showAddStyle && <AddStyleModal />}
+      {showAddSlide && <AddSlideModal />}
     </div>
   );
 }
