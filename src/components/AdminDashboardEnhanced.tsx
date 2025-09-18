@@ -1,95 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Palette, Image, BarChart3, Bot, Settings, Plus, DoorOpen, Home, X, Upload } from 'lucide-react';
+import { Users, Palette, Image, BarChart3, Bot, Settings, Plus, DoorOpen, X, Upload, Tag } from 'lucide-react';
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-// API service for backend communication
-const API_BASE_URL = 'https://cyberchicmodels-api-719300876829.us-central1.run.app';
+interface Model {
+  id: number;
+  name: string;
+  tagline?: string;
+  nationality?: string;
+  age?: number;
+  bio?: string;
+  price_usd: number;
+  is_featured: boolean;
+  is_new: boolean;
+  is_coming: boolean;
+  is_popular: boolean;
+}
 
-const apiService = {
-  async getModels() {
-    const response = await fetch(`${API_BASE_URL}/api/models`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch models');
-    return response.json();
-  },
+interface Style {
+  id: number;
+  name: string;
+  description?: string;
+  category?: string;
+  price_usd: number;
+  is_featured: boolean;
+  is_new: boolean;
+}
 
-  async createModel(data: any) {
-    const response = await fetch(`${API_BASE_URL}/api/models`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to create model');
-    return response.json();
-  },
+interface HeroSlide {
+  id: number;
+  title: string;
+  subtitle?: string;
+  button_text: string;
+  button_link: string;
+  background_image_url?: string;
+  display_order: number;
+  is_active: boolean;
+}
 
-  async getStyles() {
-    const response = await fetch(`${API_BASE_URL}/api/styles`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch styles');
-    return response.json();
-  },
-
-  async createStyle(data: any) {
-    const response = await fetch(`${API_BASE_URL}/api/styles`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to create style');
-    return response.json();
-  },
-
-  async getHeroSlides() {
-    const response = await fetch(`${API_BASE_URL}/api/hero-slides`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch hero slides');
-    return response.json();
-  },
-
-  async createHeroSlide(data: any) {
-    const response = await fetch(`${API_BASE_URL}/api/hero-slides`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to create hero slide');
-    return response.json();
-  }
-};
+const API_BASE = 'https://cyberchicmodels-api-719300876829.us-central1.run.app/api';
 
 export function AdminDashboardEnhanced({ onLogout }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState('models');
-  const [models, setModels] = useState<any[]>([]);
-  const [styles, setStyles] = useState<any[]>([]);
-  const [heroSlides, setHeroSlides] = useState<any[]>([]);
+  const [models, setModels] = useState<Model[]>([]);
+  const [styles, setStyles] = useState<Style[]>([]);
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -98,6 +55,47 @@ export function AdminDashboardEnhanced({ onLogout }: AdminDashboardProps) {
   const [showAddModel, setShowAddModel] = useState(false);
   const [showAddStyle, setShowAddStyle] = useState(false);
   const [showAddSlide, setShowAddSlide] = useState(false);
+
+  // Form states
+  const [modelForm, setModelForm] = useState({
+    name: '',
+    tagline: '',
+    nationality: '',
+    age: '',
+    bio: '',
+    price_usd: '',
+    is_featured: false,
+    is_new: true,
+    is_coming: false,
+    is_popular: false,
+    collections: [] as string[]
+  });
+
+  const [styleForm, setStyleForm] = useState({
+    name: '',
+    description: '',
+    category: '',
+    price_usd: '',
+    is_featured: false,
+    is_new: true,
+    colors: [] as string[],
+    sizes: [] as string[]
+  });
+
+  const [heroForm, setHeroForm] = useState({
+    title: '',
+    subtitle: '',
+    button_text: 'Shop Now',
+    button_link: '/',
+    display_order: 1,
+    is_active: true,
+    background_color: '#667eea'
+  });
+
+  const [uploadedImages, setUploadedImages] = useState<any[]>([]);
+  const [newCollection, setNewCollection] = useState('');
+  const [newColor, setNewColor] = useState('#000000');
+  const [newSize, setNewSize] = useState('');
 
   useEffect(() => {
     loadData();
@@ -108,1303 +106,367 @@ export function AdminDashboardEnhanced({ onLogout }: AdminDashboardProps) {
       setLoading(true);
       setError(null);
       
-      // Try to load data from backend
-      const [modelsData, stylesData, slidesData] = await Promise.allSettled([
-        apiService.getModels(),
-        apiService.getStyles(),
-        apiService.getHeroSlides()
+      const [modelsRes, stylesRes, slidesRes] = await Promise.all([
+        fetch(`${API_BASE}/models`).catch(() => ({ ok: false, json: () => Promise.resolve([]) })),
+        fetch(`${API_BASE}/styles`).catch(() => ({ ok: false, json: () => Promise.resolve([]) })),
+        fetch(`${API_BASE}/hero-slides`).catch(() => ({ ok: false, json: () => Promise.resolve([]) }))
       ]);
-      
-      setModels(modelsData.status === 'fulfilled' ? modelsData.value : []);
-      setStyles(stylesData.status === 'fulfilled' ? stylesData.value : []);
-      setHeroSlides(slidesData.status === 'fulfilled' ? slidesData.value : []);
-      
+
+      if (modelsRes.ok) {
+        const modelsData = await modelsRes.json();
+        setModels(Array.isArray(modelsData) ? modelsData : []);
+      }
+
+      if (stylesRes.ok) {
+        const stylesData = await stylesRes.json();
+        setStyles(Array.isArray(stylesData) ? stylesData : []);
+      }
+
+      if (slidesRes.ok) {
+        const slidesData = await slidesRes.json();
+        setHeroSlides(Array.isArray(slidesData) ? slidesData : []);
+      }
+
+      // Check if any request failed
+      if (!modelsRes.ok && !stylesRes.ok && !slidesRes.ok) {
+        setError('Backend API connection failed. Please check CORS configuration.');
+      }
+
     } catch (err) {
-      console.error('Failed to load data:', err);
-      setError('Backend connection failed. Working in offline mode.');
+      setError('Failed to load data. Backend may not be connected.');
+      console.error('Load data error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const showSuccess = (message: string) => {
-    setSuccess(message);
-    setError(null);
-    setTimeout(() => setSuccess(null), 5000);
+  const showMessage = (message: string, type: 'success' | 'error') => {
+    if (type === 'success') {
+      setSuccess(message);
+      setError(null);
+      setTimeout(() => setSuccess(null), 5000);
+    } else {
+      setError(message);
+      setSuccess(null);
+    }
   };
 
-  const showError = (message: string) => {
-    setError(message);
-    setSuccess(null);
-    setTimeout(() => setError(null), 8000);
-  };
-
-  const handleExitAdmin = () => {
+  const handleLogout = () => {
     if (window.confirm('Are you sure you want to exit the admin panel?')) {
       onLogout();
     }
   };
 
-  // Add Model Modal Component
-  const AddModelModal = () => {
-    const [modelImages, setModelImages] = useState<{file: File, type: string}[]>([]);
-    const [modelCollections, setModelCollections] = useState<string[]>([]);
-    const [newCollection, setNewCollection] = useState('');
-    const [submitting, setSubmitting] = useState(false);
+  // Image upload functions
+  const getSignedUrl = async (filename: string, contentType: string, folder: string = 'general') => {
+    const response = await fetch(`${API_BASE}/upload-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ filename, contentType, folder })
+    });
 
-    const imageTypes = [
-      'thumbnail', 'headshot', 'three_quarter', 'full_body', 
-      'profile', 'back_view', 'detail_shot', 'lifestyle'
-    ];
+    if (!response.ok) {
+      throw new Error('Failed to get upload URL');
+    }
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files || []);
-      const newImages = files.map(file => ({ file, type: 'thumbnail' }));
-      setModelImages(prev => [...prev, ...newImages]);
-    };
+    return response.json();
+  };
 
-    const updateImageType = (index: number, type: string) => {
-      setModelImages(prev => prev.map((img, i) => 
-        i === index ? { ...img, type } : img
-      ));
-    };
+  const uploadImage = async (file: File, metadata: any) => {
+    try {
+      const { uploadUrl, objectName, publicUrl } = await getSignedUrl(file.name, file.type, metadata.folder || 'general');
 
-    const removeImage = (index: number) => {
-      setModelImages(prev => prev.filter((_, i) => i !== index));
-    };
+      // Upload to GCS
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type
+        },
+        body: file
+      });
 
-    const handleAddCollection = () => {
-      if (newCollection.trim() && !modelCollections.includes(newCollection.trim())) {
-        setModelCollections(prev => [...prev, newCollection.trim()]);
-        setNewCollection('');
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image');
       }
-    };
 
-    const removeCollection = (collection: string) => {
-      setModelCollections(prev => prev.filter(c => c !== collection));
-    };
+      // Confirm upload
+      const confirmResponse = await fetch(`${API_BASE}/images/confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          objectName,
+          publicUrl,
+          ...metadata
+        })
+      });
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      setSubmitting(true);
+      if (!confirmResponse.ok) {
+        throw new Error('Failed to confirm image upload');
+      }
 
-      try {
-        const formData = new FormData(e.target as HTMLFormElement);
-        
-        const modelData = {
-          name: formData.get('name') as string,
-          tagline: formData.get('tagline') as string,
-          nationality: formData.get('nationality') as string,
-          ethnicity: formData.get('ethnicity') as string,
-          gender: formData.get('gender') as string,
-          age: parseInt(formData.get('age') as string) || null,
-          height: formData.get('height') as string,
-          weight: formData.get('weight') as string,
-          bio: formData.get('bio') as string,
-          hobbies: formData.get('hobbies') as string,
-          specialties: (formData.get('specialties') as string)?.split(',').map(s => s.trim()).filter(s => s) || [],
-          price_usd: parseFloat(formData.get('price') as string) || 1.99,
-          is_featured: formData.get('featured') === 'on',
-          is_new: formData.get('new') === 'on',
-          is_coming: formData.get('coming') === 'on',
-          is_popular: formData.get('popular') === 'on',
-          status: 'published',
-          collections: modelCollections,
-          image_count: modelImages.length
+      return { publicUrl, objectName };
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+  };
+
+  const handleImageUpload = (files: FileList | null, imageType: string) => {
+    if (!files) return;
+
+    Array.from(files).forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newImage = {
+          id: Date.now() + index,
+          file,
+          preview: e.target?.result as string,
+          type: imageType,
+          angle: 'front',
+          category: 'gallery',
+          description: ''
         };
+        setUploadedImages(prev => [...prev, newImage]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 
-        console.log('Creating model with data:', modelData);
+  const removeImage = (imageId: number) => {
+    setUploadedImages(prev => prev.filter(img => img.id !== imageId));
+  };
+
+  // Collection management
+  const addCollection = () => {
+    if (newCollection.trim() && !modelForm.collections.includes(newCollection.trim())) {
+      setModelForm(prev => ({
+        ...prev,
+        collections: [...prev.collections, newCollection.trim()]
+      }));
+      setNewCollection('');
+    }
+  };
+
+  const removeCollection = (collection: string) => {
+    setModelForm(prev => ({
+      ...prev,
+      collections: prev.collections.filter(c => c !== collection)
+    }));
+  };
+
+  // Color management for styles
+  const addColor = () => {
+    if (newColor && !styleForm.colors.includes(newColor)) {
+      setStyleForm(prev => ({
+        ...prev,
+        colors: [...prev.colors, newColor]
+      }));
+    }
+  };
+
+  const removeColor = (color: string) => {
+    setStyleForm(prev => ({
+      ...prev,
+      colors: prev.colors.filter(c => c !== color)
+    }));
+  };
+
+  // Size management for styles
+  const addSize = () => {
+    if (newSize.trim() && !styleForm.sizes.includes(newSize.trim())) {
+      setStyleForm(prev => ({
+        ...prev,
+        sizes: [...prev.sizes, newSize.trim()]
+      }));
+      setNewSize('');
+    }
+  };
+
+  const removeSize = (size: string) => {
+    setStyleForm(prev => ({
+      ...prev,
+      sizes: prev.sizes.filter(s => s !== size)
+    }));
+  };
+
+  // Form submissions
+  const submitModel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${API_BASE}/models`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...modelForm,
+          age: modelForm.age ? parseInt(modelForm.age) : null,
+          price_usd: modelForm.price_usd ? parseFloat(modelForm.price_usd) : 0
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        showMessage(`✅ Model "${modelForm.name}" created successfully!`, 'success');
         
-        // Try to create model via API
-        await apiService.createModel(modelData);
-        
-        showSuccess(`✅ Model "${modelData.name}" created successfully with ${modelCollections.length} collections and ${modelImages.length} images!`);
-        
+        // Upload images if any
+        if (uploadedImages.length > 0) {
+          for (const image of uploadedImages) {
+            try {
+              await uploadImage(image.file, {
+                kind: 'model',
+                model_id: result.id,
+                angle: image.angle,
+                category: image.category,
+                description: image.description,
+                folder: 'models'
+              });
+            } catch (error) {
+              console.error('Image upload failed:', error);
+            }
+          }
+        }
+
         // Reset form
-        setModelImages([]);
-        setModelCollections([]);
-        setNewCollection('');
-        
-        // Refresh data and close modal
-        loadData();
+        setModelForm({
+          name: '', tagline: '', nationality: '', age: '', bio: '', price_usd: '',
+          is_featured: false, is_new: true, is_coming: false, is_popular: false, collections: []
+        });
+        setUploadedImages([]);
         setShowAddModel(false);
-        
-      } catch (err) {
-        console.error('Model creation error:', err);
-        showError(`❌ Failed to create model: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      } finally {
-        setSubmitting(false);
+        loadData();
+      } else {
+        const errorData = await response.text();
+        showMessage(`❌ Failed to create model: ${errorData}`, 'error');
       }
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg w-full max-w-4xl max-h-[95vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-            <h3 className="text-xl font-semibold">Add New Model</h3>
-            <button 
-              onClick={() => setShowAddModel(false)} 
-              className="text-gray-500 hover:text-gray-700"
-              type="button"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="p-6">
-            {/* Basic Information */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Basic Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Model Name *</label>
-                  <input 
-                    name="name" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., Sophia Martinez" 
-                    required 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
-                  <input 
-                    name="tagline" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., Fashion Forward" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
-                  <input 
-                    name="nationality" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., Spanish" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ethnicity</label>
-                  <input 
-                    name="ethnicity" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., Hispanic" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                  <select 
-                    name="gender" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                  >
-                    <option value="">Select gender</option>
-                    <option value="female">Female</option>
-                    <option value="male">Male</option>
-                    <option value="non-binary">Non-binary</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-                  <input 
-                    name="age" 
-                    type="number" 
-                    min="18" 
-                    max="65" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="25" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Height</label>
-                  <input 
-                    name="height" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., 5ft 7in" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
-                  <input 
-                    name="weight" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., 125 lbs" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
-                  <input 
-                    name="price" 
-                    type="number" 
-                    step="0.01" 
-                    min="0.99" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="1.99" 
-                    defaultValue="1.99"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Bio and Details */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Bio & Details</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                  <textarea 
-                    name="bio" 
-                    rows={4} 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="Professional fashion model with experience in..."
-                  ></textarea>
-                </div>
-                <div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Hobbies</label>
-                    <textarea 
-                      name="hobbies" 
-                      rows={2} 
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                      placeholder="Photography, yoga, traveling..."
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Specialties (comma-separated)</label>
-                    <input 
-                      name="specialties" 
-                      type="text" 
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                      placeholder="fashion, commercial, editorial" 
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Model Flags */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Model Flags</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <input name="featured" type="checkbox" className="rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
-                  <span className="text-sm font-medium">⭐ Featured</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <input name="new" type="checkbox" defaultChecked className="rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
-                  <span className="text-sm font-medium">🆕 New</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <input name="coming" type="checkbox" className="rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
-                  <span className="text-sm font-medium">🔜 Coming Soon</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <input name="popular" type="checkbox" className="rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
-                  <span className="text-sm font-medium">🔥 Popular</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Collections */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Collections</h4>
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="text"
-                  value={newCollection}
-                  onChange={(e) => setNewCollection(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                  placeholder="Enter collection name (e.g., Summer 2024, Casual Wear)"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddCollection();
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCollection}
-                  className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-                >
-                  Add Collection
-                </button>
-              </div>
-              {modelCollections.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {modelCollections.map((collection, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                    >
-                      {collection}
-                      <button
-                        type="button"
-                        onClick={() => removeCollection(collection)}
-                        className="ml-2 text-blue-600 hover:text-blue-800"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Image Upload */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Model Images</h4>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-rose-400 transition-colors">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="model-image-upload"
-                />
-                <label htmlFor="model-image-upload" className="cursor-pointer">
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">Upload Model Images</p>
-                  <p className="text-sm text-gray-500">Click to select or drag and drop images</p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, WebP up to 10MB each</p>
-                </label>
-              </div>
-              
-              {modelImages.length > 0 && (
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {modelImages.map((imageData, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start space-x-4">
-                        <img
-                          src={URL.createObjectURL(imageData.file)}
-                          alt={`Upload ${index + 1}`}
-                          className="w-20 h-20 object-cover rounded-lg"
-                        />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 mb-2">{imageData.file.name}</p>
-                          <select
-                            value={imageData.type}
-                            onChange={(e) => updateImageType(index, e.target.value)}
-                            className="w-full text-sm border border-gray-300 rounded px-2 py-1"
-                          >
-                            {imageTypes.map(type => (
-                              <option key={type} value={type}>
-                                {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-3 pt-6 border-t">
-              <button 
-                type="button" 
-                onClick={() => setShowAddModel(false)} 
-                className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                disabled={submitting}
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating Model...
-                  </>
-                ) : (
-                  'Create Model'
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+    } catch (error) {
+      showMessage(`❌ Error: ${error}`, 'error');
+    }
   };
 
-  // Add Style Modal Component
-  const AddStyleModal = () => {
-    const [styleImages, setStyleImages] = useState<{file: File, type: string, description: string}[]>([]);
-    const [colors, setColors] = useState<string[]>(['#ff0000']);
-    const [submitting, setSubmitting] = useState(false);
+  const submitStyle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${API_BASE}/styles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...styleForm,
+          price_usd: styleForm.price_usd ? parseFloat(styleForm.price_usd) : 0
+        })
+      });
 
-    const styleImageTypes = [
-      'front_view', 'back_view', 'side_view', 'detail_shot', 
-      'texture_closeup', 'worn_model', 'flat_lay', 'lifestyle'
-    ];
-
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files || []);
-      const newImages = files.map(file => ({ 
-        file, 
-        type: 'front_view', 
-        description: '' 
-      }));
-      setStyleImages(prev => [...prev, ...newImages]);
-    };
-
-    const updateImageType = (index: number, type: string) => {
-      setStyleImages(prev => prev.map((img, i) => 
-        i === index ? { ...img, type } : img
-      ));
-    };
-
-    const updateImageDescription = (index: number, description: string) => {
-      setStyleImages(prev => prev.map((img, i) => 
-        i === index ? { ...img, description } : img
-      ));
-    };
-
-    const removeImage = (index: number) => {
-      setStyleImages(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const addColor = () => {
-      setColors(prev => [...prev, '#ff0000']);
-    };
-
-    const updateColor = (index: number, color: string) => {
-      setColors(prev => prev.map((c, i) => i === index ? color : c));
-    };
-
-    const removeColor = (index: number) => {
-      if (colors.length > 1) {
-        setColors(prev => prev.filter((_, i) => i !== index));
-      }
-    };
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      setSubmitting(true);
-
-      try {
-        const formData = new FormData(e.target as HTMLFormElement);
+      if (response.ok) {
+        const result = await response.json();
+        showMessage(`✅ Style "${styleForm.name}" created successfully!`, 'success');
         
-        const styleData = {
-          name: formData.get('name') as string,
-          clothing_type: formData.get('clothing_type') as string,
-          category: formData.get('category') as string,
-          description: formData.get('description') as string,
-          material: formData.get('material') as string,
-          brand: formData.get('brand') as string,
-          season: formData.get('season') as string,
-          price_usd: parseFloat(formData.get('price') as string) || 1.99,
-          colors: colors,
-          is_featured: formData.get('featured') === 'on',
-          is_new: formData.get('new') === 'on',
-          is_bestseller: formData.get('bestseller') === 'on',
-          status: 'published',
-          image_count: styleImages.length
-        };
+        // Upload images if any
+        if (uploadedImages.length > 0) {
+          for (const image of uploadedImages) {
+            try {
+              await uploadImage(image.file, {
+                kind: 'style',
+                style_id: result.id,
+                angle: image.angle,
+                category: image.category,
+                description: image.description,
+                folder: 'styles'
+              });
+            } catch (error) {
+              console.error('Image upload failed:', error);
+            }
+          }
+        }
 
-        console.log('Creating style with data:', styleData);
-        
-        await apiService.createStyle(styleData);
-        
-        showSuccess(`✅ Style "${styleData.name}" created successfully with ${colors.length} colors and ${styleImages.length} images!`);
-        
         // Reset form
-        setStyleImages([]);
-        setColors(['#ff0000']);
-        
-        // Refresh data and close modal
-        loadData();
+        setStyleForm({
+          name: '', description: '', category: '', price_usd: '',
+          is_featured: false, is_new: true, colors: [], sizes: []
+        });
+        setUploadedImages([]);
         setShowAddStyle(false);
-        
-      } catch (err) {
-        console.error('Style creation error:', err);
-        showError(`❌ Failed to create style: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      } finally {
-        setSubmitting(false);
+        loadData();
+      } else {
+        const errorData = await response.text();
+        showMessage(`❌ Failed to create style: ${errorData}`, 'error');
       }
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg w-full max-w-4xl max-h-[95vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-            <h3 className="text-xl font-semibold">Add New Style</h3>
-            <button 
-              onClick={() => setShowAddStyle(false)} 
-              className="text-gray-500 hover:text-gray-700"
-              type="button"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="p-6">
-            {/* Basic Information */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Basic Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Style Name *</label>
-                  <input 
-                    name="name" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., Elegant Evening Dress" 
-                    required 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Clothing Type</label>
-                  <select 
-                    name="clothing_type" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                  >
-                    <option value="">Select type</option>
-                    <option value="dress">Dress</option>
-                    <option value="top">Top</option>
-                    <option value="blouse">Blouse</option>
-                    <option value="shirt">Shirt</option>
-                    <option value="bottom">Bottom</option>
-                    <option value="pants">Pants</option>
-                    <option value="skirt">Skirt</option>
-                    <option value="outerwear">Outerwear</option>
-                    <option value="jacket">Jacket</option>
-                    <option value="coat">Coat</option>
-                    <option value="accessories">Accessories</option>
-                    <option value="shoes">Shoes</option>
-                    <option value="bag">Bag</option>
-                    <option value="jewelry">Jewelry</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <select 
-                    name="category" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                  >
-                    <option value="">Select category</option>
-                    <option value="casual">Casual</option>
-                    <option value="formal">Formal</option>
-                    <option value="business">Business</option>
-                    <option value="party">Party</option>
-                    <option value="evening">Evening</option>
-                    <option value="beach">Beach</option>
-                    <option value="sports">Sports</option>
-                    <option value="vintage">Vintage</option>
-                    <option value="bohemian">Bohemian</option>
-                    <option value="minimalist">Minimalist</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                  <input 
-                    name="brand" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., Chanel, Zara" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Material</label>
-                  <input 
-                    name="material" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., Cotton, Silk, Polyester" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Season</label>
-                  <select 
-                    name="season" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                  >
-                    <option value="">Select season</option>
-                    <option value="spring">Spring</option>
-                    <option value="summer">Summer</option>
-                    <option value="fall">Fall</option>
-                    <option value="winter">Winter</option>
-                    <option value="all-season">All Season</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
-                  <input 
-                    name="price" 
-                    type="number" 
-                    step="0.01" 
-                    min="0.99" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="1.99" 
-                    defaultValue="1.99"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Description</h4>
-              <textarea 
-                name="description" 
-                rows={4} 
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                placeholder="Describe this style, its features, and styling suggestions..."
-              ></textarea>
-            </div>
-
-            {/* Colors */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Available Colors</h4>
-              <div className="flex flex-wrap gap-4 mb-4">
-                {colors.map((color, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={color}
-                      onChange={(e) => updateColor(index, e.target.value)}
-                      className="w-12 h-12 border border-gray-300 rounded-lg cursor-pointer"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeColor(index)}
-                      className="text-red-500 hover:text-red-700"
-                      disabled={colors.length === 1}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addColor}
-                  className="w-12 h-12 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 hover:border-rose-400 hover:text-rose-500"
-                >
-                  <Plus className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Style Flags */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Style Flags</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <input name="featured" type="checkbox" className="rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
-                  <span className="text-sm font-medium">⭐ Featured</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <input name="new" type="checkbox" defaultChecked className="rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
-                  <span className="text-sm font-medium">🆕 New</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <input name="bestseller" type="checkbox" className="rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
-                  <span className="text-sm font-medium">🏆 Bestseller</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Image Upload with Angle Selection */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Style Images with Angles</h4>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-rose-400 transition-colors">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="style-image-upload"
-                />
-                <label htmlFor="style-image-upload" className="cursor-pointer">
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">Upload Style Images</p>
-                  <p className="text-sm text-gray-500">Front view, back view, side view, detail shots</p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, WebP up to 10MB each</p>
-                </label>
-              </div>
-              
-              {styleImages.length > 0 && (
-                <div className="mt-4 space-y-4">
-                  {styleImages.map((imageData, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start space-x-4">
-                        <img
-                          src={URL.createObjectURL(imageData.file)}
-                          alt={`Style ${index + 1}`}
-                          className="w-24 h-24 object-cover rounded-lg"
-                        />
-                        <div className="flex-1 space-y-3">
-                          <p className="text-sm font-medium text-gray-900">{imageData.file.name}</p>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Image Type/Angle</label>
-                            <select
-                              value={imageData.type}
-                              onChange={(e) => updateImageType(index, e.target.value)}
-                              className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-                            >
-                              {styleImageTypes.map(type => (
-                                <option key={type} value={type}>
-                                  {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Description</label>
-                            <input
-                              type="text"
-                              value={imageData.description}
-                              onChange={(e) => updateImageDescription(index, e.target.value)}
-                              className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-                              placeholder="Describe this image..."
-                            />
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-3 pt-6 border-t">
-              <button 
-                type="button" 
-                onClick={() => setShowAddStyle(false)} 
-                className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                disabled={submitting}
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating Style...
-                  </>
-                ) : (
-                  'Create Style'
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+    } catch (error) {
+      showMessage(`❌ Error: ${error}`, 'error');
+    }
   };
 
-  // Add Hero Slide Modal Component
-  const AddSlideModal = () => {
-    const [heroImages, setHeroImages] = useState<{file: File, order: number}[]>([]);
-    const [submitting, setSubmitting] = useState(false);
+  const submitHeroSlide = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let backgroundImageUrl = '';
+      
+      // Upload background image if any
+      if (uploadedImages.length > 0) {
+        const backgroundImage = uploadedImages[0];
+        try {
+          const result = await uploadImage(backgroundImage.file, {
+            kind: 'hero',
+            category: 'hero',
+            hero_order: heroForm.display_order,
+            description: `Background for ${heroForm.title}`,
+            folder: 'hero-slides'
+          });
+          backgroundImageUrl = result.publicUrl;
+        } catch (error) {
+          console.error('Background image upload failed:', error);
+        }
+      }
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files || []);
-      const newImages = files.map((file, index) => ({ 
-        file, 
-        order: heroImages.length + index + 1 
-      }));
-      setHeroImages(prev => [...prev, ...newImages]);
-    };
+      const response = await fetch(`${API_BASE}/hero-slides`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...heroForm,
+          background_image_url: backgroundImageUrl
+        })
+      });
 
-    const updateImageOrder = (index: number, order: number) => {
-      setHeroImages(prev => prev.map((img, i) => 
-        i === index ? { ...img, order } : img
-      ));
-    };
-
-    const removeImage = (index: number) => {
-      setHeroImages(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      setSubmitting(true);
-
-      try {
-        const formData = new FormData(e.target as HTMLFormElement);
-        
-        const slideData = {
-          title: formData.get('title') as string,
-          subtitle: formData.get('subtitle') as string,
-          button_text: formData.get('button_text') as string,
-          button_link: formData.get('button_link') as string,
-          description: formData.get('description') as string,
-          background_color: formData.get('background_color') as string,
-          text_color: formData.get('text_color') as string,
-          display_order: parseInt(formData.get('display_order') as string) || 1,
-          is_active: formData.get('active') === 'on',
-          is_featured: formData.get('featured') === 'on',
-          animation_type: formData.get('animation_type') as string,
-          duration_seconds: parseInt(formData.get('duration_seconds') as string) || 5,
-          image_count: heroImages.length
-        };
-
-        console.log('Creating hero slide with data:', slideData);
-        
-        await apiService.createHeroSlide(slideData);
-        
-        showSuccess(`✅ Hero slide "${slideData.title}" created successfully at carousel position ${slideData.display_order} with ${heroImages.length} images!`);
+      if (response.ok) {
+        showMessage(`✅ Hero slide "${heroForm.title}" created successfully!`, 'success');
         
         // Reset form
-        setHeroImages([]);
-        
-        // Refresh data and close modal
-        loadData();
+        setHeroForm({
+          title: '', subtitle: '', button_text: 'Shop Now', button_link: '/',
+          display_order: 1, is_active: true, background_color: '#667eea'
+        });
+        setUploadedImages([]);
         setShowAddSlide(false);
-        
-      } catch (err) {
-        console.error('Hero slide creation error:', err);
-        showError(`❌ Failed to create hero slide: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      } finally {
-        setSubmitting(false);
+        loadData();
+      } else {
+        const errorData = await response.text();
+        showMessage(`❌ Failed to create hero slide: ${errorData}`, 'error');
       }
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg w-full max-w-4xl max-h-[95vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-            <h3 className="text-xl font-semibold">Add New Hero Slide</h3>
-            <button 
-              onClick={() => setShowAddSlide(false)} 
-              className="text-gray-500 hover:text-gray-700"
-              type="button"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="p-6">
-            {/* Basic Information */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Slide Content</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                  <input 
-                    name="title" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., Discover Your Style" 
-                    required 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
-                  <input 
-                    name="subtitle" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., Explore our latest collection" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
-                  <input 
-                    name="button_text" 
-                    type="text" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="e.g., Shop Now" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Button Link</label>
-                  <input 
-                    name="button_link" 
-                    type="url" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="https://..." 
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea 
-                    name="description" 
-                    rows={3} 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="Describe this slide and its purpose..."
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-
-            {/* Visual Settings */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Visual Settings</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Background Color</label>
-                  <input 
-                    name="background_color" 
-                    type="color" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 h-12 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    defaultValue="#667eea"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Text Color</label>
-                  <input 
-                    name="text_color" 
-                    type="color" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 h-12 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    defaultValue="#ffffff"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Animation Type</label>
-                  <select 
-                    name="animation_type" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                  >
-                    <option value="fade">Fade In</option>
-                    <option value="slide-left">Slide from Left</option>
-                    <option value="slide-right">Slide from Right</option>
-                    <option value="slide-up">Slide from Bottom</option>
-                    <option value="zoom">Zoom In</option>
-                    <option value="none">No Animation</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Carousel Settings */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Carousel Settings</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Display Order (1-10)</label>
-                  <input 
-                    name="display_order" 
-                    type="number" 
-                    min="1" 
-                    max="10" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="1" 
-                    defaultValue="1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration (seconds)</label>
-                  <input 
-                    name="duration_seconds" 
-                    type="number" 
-                    min="3" 
-                    max="15" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500" 
-                    placeholder="5" 
-                    defaultValue="5"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Slide Flags */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Slide Settings</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <input name="active" type="checkbox" defaultChecked className="rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
-                  <span className="text-sm font-medium">✅ Active (Show in carousel)</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <input name="featured" type="checkbox" className="rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
-                  <span className="text-sm font-medium">⭐ Featured (Priority display)</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Image Upload with Order */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4 text-gray-800">Background Images with Carousel Order</h4>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-rose-400 transition-colors">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="hero-image-upload"
-                />
-                <label htmlFor="hero-image-upload" className="cursor-pointer">
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">Upload Background Images</p>
-                  <p className="text-sm text-gray-500">High-resolution images for carousel background</p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, WebP up to 10MB each</p>
-                </label>
-              </div>
-              
-              {heroImages.length > 0 && (
-                <div className="mt-4 space-y-4">
-                  {heroImages.map((imageData, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start space-x-4">
-                        <img
-                          src={URL.createObjectURL(imageData.file)}
-                          alt={`Background ${index + 1}`}
-                          className="w-24 h-24 object-cover rounded-lg"
-                        />
-                        <div className="flex-1 space-y-3">
-                          <p className="text-sm font-medium text-gray-900">{imageData.file.name}</p>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Display Order in Carousel</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max="10"
-                              value={imageData.order}
-                              onChange={(e) => updateImageOrder(index, parseInt(e.target.value) || 1)}
-                              className="w-20 text-sm border border-gray-300 rounded px-3 py-2"
-                            />
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-3 pt-6 border-t">
-              <button 
-                type="button" 
-                onClick={() => setShowAddSlide(false)} 
-                className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                disabled={submitting}
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating Slide...
-                  </>
-                ) : (
-                  'Create Hero Slide'
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+    } catch (error) {
+      showMessage(`❌ Error: ${error}`, 'error');
+    }
   };
-
-  const renderModelsTab = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Models Management</h2>
-        <button 
-          onClick={() => setShowAddModel(true)}
-          className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 transition-colors flex items-center"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Model
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
-        </div>
-      ) : models.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">No models found</p>
-          <p className="text-sm text-gray-500">Models will appear here once created or when backend is connected</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {models.map((model, index) => (
-            <div key={model.id || index} className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold">{model.name}</h3>
-              <p className="text-gray-600">{model.nationality}</p>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {model.is_featured && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">⭐ Featured</span>}
-                {model.is_new && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">🆕 New</span>}
-                {model.is_coming && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">🔜 Coming</span>}
-                {model.is_popular && <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">🔥 Popular</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderStylesTab = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Styles Management</h2>
-        <button 
-          onClick={() => setShowAddStyle(true)}
-          className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 transition-colors flex items-center"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Style
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
-        </div>
-      ) : styles.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <Palette className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">No styles found</p>
-          <p className="text-sm text-gray-500">Styles will appear here once created or when backend is connected</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {styles.map((style, index) => (
-            <div key={style.id || index} className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold">{style.name}</h3>
-              <p className="text-gray-600">${style.price_usd}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderHeroSlidesTab = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Hero Slides Management</h2>
-        <button 
-          onClick={() => setShowAddSlide(true)}
-          className="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 transition-colors flex items-center"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Slide
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
-        </div>
-      ) : heroSlides.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">No hero slides found</p>
-          <p className="text-sm text-gray-500">Hero slides will appear here once created or when backend is connected</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {heroSlides.map((slide, index) => (
-            <div key={slide.id || index} className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold">{slide.title}</h3>
-              <p className="text-gray-600">{slide.subtitle}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderSettingsTab = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Settings</h2>
-
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold mb-4">API Configuration</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">API Base URL</label>
-            <input 
-              type="text" 
-              value={API_BASE_URL}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
-              readOnly
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Google Cloud Storage URL</label>
-            <input 
-              type="text" 
-              value="https://storage.googleapis.com/cyberchicmodels-media"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
-              readOnly
-            />
-          </div>
-        </div>
-        <p className="text-sm text-gray-500 mt-4">Environment variables are configured in your deployment settings.</p>
-        
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Connection Status</h4>
-          <p className="text-sm text-blue-700">
-            {error ? '🔴 Backend connection failed - Working in offline mode' : '🟢 Backend connection successful'}
-          </p>
-        </div>
-      </div>
-    </div>
-   );
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with Exit Door - NO KEY ICON */}
+      {/* Header with Logout */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-900">CyberChicModels.ai</h1>
-              <span className="text-sm text-gray-500">Admin Dashboard</span>
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <h1 className="text-xl font-semibold text-gray-900">CyberChicModels.ai Admin</h1>
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => window.location.href = '/'}
-                className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Back to Site
-              </button>
-              <button 
-                onClick={handleExitAdmin}
-                className="flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                onClick={handleLogout}
+                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
               >
                 <DoorOpen className="w-4 h-4 mr-2" />
                 Exit Admin
@@ -1415,113 +477,960 @@ export function AdminDashboardEnhanced({ onLogout }: AdminDashboardProps) {
       </div>
 
       {/* Success/Error Messages */}
-      {error && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            ⚠️ {error}
-          </div>
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md mx-4 mt-4">
+          {success}
         </div>
       )}
-      
-      {success && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
-            {success}
-          </div>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md mx-4 mt-4">
+          {error}
         </div>
       )}
 
       <div className="flex">
         {/* Sidebar */}
-        <div className="w-64 bg-white shadow-lg min-h-screen">
-          <nav className="mt-6">
-            <button
-              onClick={() => setActiveTab('models')}
-              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
-                activeTab === 'models' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
-              }`}
-            >
-              <Users className="w-5 h-5 mr-3" />
-              Models
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('styles')}
-              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
-                activeTab === 'styles' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
-              }`}
-            >
-              <Palette className="w-5 h-5 mr-3" />
-              Styles
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('hero-slides')}
-              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
-                activeTab === 'hero-slides' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
-              }`}
-            >
-              <Image className="w-5 h-5 mr-3" />
-              Hero Slides
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
-                activeTab === 'analytics' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
-              }`}
-            >
-              <BarChart3 className="w-5 h-5 mr-3" />
-              Analytics
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('ai-assistant')}
-              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
-                activeTab === 'ai-assistant' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
-              }`}
-            >
-              <Bot className="w-5 h-5 mr-3" />
-              AI Assistant
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-50 ${
-                activeTab === 'settings' ? 'bg-rose-50 border-r-2 border-rose-500 text-rose-600' : 'text-gray-600'
-              }`}
-            >
-              <Settings className="w-5 h-5 mr-3" />
-              Settings
-            </button>
+        <div className="w-64 bg-white shadow-sm min-h-screen">
+          <nav className="mt-8">
+            <div className="px-4 space-y-2">
+              {[
+                { id: 'models', label: 'Models', icon: Users, count: models.length },
+                { id: 'styles', label: 'Styles', icon: Palette, count: styles.length },
+                { id: 'hero-slides', label: 'Hero Slides', icon: Image, count: heroSlides.length },
+                { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+                { id: 'ai-assistant', label: 'AI Assistant', icon: Bot },
+                { id: 'settings', label: 'Settings', icon: Settings }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === item.id
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.label}
+                  {item.count !== undefined && (
+                    <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">
+                      {item.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </nav>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 p-8">
-          {activeTab === 'models' && renderModelsTab()}
-          {activeTab === 'styles' && renderStylesTab()}
-          {activeTab === 'hero-slides' && renderHeroSlidesTab()}
-          {activeTab === 'settings' && renderSettingsTab()}
+          {/* Models Tab */}
+          {activeTab === 'models' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Models Management</h2>
+                <button
+                  onClick={() => setShowAddModel(true)}
+                  className="flex items-center px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Model
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
+                </div>
+              ) : models.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No models found</p>
+                  <p className="text-sm text-gray-500 mt-2">Models will appear here once the backend API is connected</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {models.map((model) => (
+                    <div key={model.id} className="bg-white rounded-lg shadow-sm border p-6">
+                      <h3 className="font-semibold text-lg mb-2">{model.name}</h3>
+                      {model.tagline && <p className="text-gray-600 text-sm mb-2">{model.tagline}</p>}
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {model.is_featured && <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">⭐ Featured</span>}
+                        {model.is_new && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">🆕 New</span>}
+                        {model.is_coming && <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">🔜 Coming Soon</span>}
+                        {model.is_popular && <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">🔥 Popular</span>}
+                      </div>
+                      <p className="text-sm text-gray-500">${model.price_usd}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Styles Tab */}
+          {activeTab === 'styles' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Styles Management</h2>
+                <button
+                  onClick={() => setShowAddStyle(true)}
+                  className="flex items-center px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Style
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
+                </div>
+              ) : styles.length === 0 ? (
+                <div className="text-center py-12">
+                  <Palette className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No styles found</p>
+                  <p className="text-sm text-gray-500 mt-2">Styles will appear here once the backend API is connected</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {styles.map((style) => (
+                    <div key={style.id} className="bg-white rounded-lg shadow-sm border p-6">
+                      <h3 className="font-semibold text-lg mb-2">{style.name}</h3>
+                      {style.description && <p className="text-gray-600 text-sm mb-2">{style.description}</p>}
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {style.is_featured && <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">⭐ Featured</span>}
+                        {style.is_new && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">🆕 New</span>}
+                      </div>
+                      <p className="text-sm text-gray-500">${style.price_usd}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Hero Slides Tab */}
+          {activeTab === 'hero-slides' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Hero Slides Management</h2>
+                <button
+                  onClick={() => setShowAddSlide(true)}
+                  className="flex items-center px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Slide
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
+                </div>
+              ) : heroSlides.length === 0 ? (
+                <div className="text-center py-12">
+                  <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No hero slides found</p>
+                  <p className="text-sm text-gray-500 mt-2">Hero slides will appear here once the backend API is connected</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {heroSlides.map((slide) => (
+                    <div key={slide.id} className="bg-white rounded-lg shadow-sm border p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="font-semibold text-lg">{slide.title}</h3>
+                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                          Order: {slide.display_order}
+                        </span>
+                      </div>
+                      {slide.subtitle && <p className="text-gray-600 text-sm mb-2">{slide.subtitle}</p>}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">{slide.button_text}</span>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          slide.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {slide.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Other tabs */}
           {activeTab === 'analytics' && (
             <div className="text-center py-12">
               <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">Analytics dashboard coming soon</p>
             </div>
           )}
+
           {activeTab === 'ai-assistant' && (
             <div className="text-center py-12">
               <Bot className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">AI Assistant features coming soon</p>
             </div>
           )}
+
+          {activeTab === 'settings' && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Settings</h2>
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h3 className="text-lg font-semibold mb-4">API Configuration</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">API Base URL</label>
+                    <input
+                      type="text"
+                      value={API_BASE}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Google Cloud Storage URL</label>
+                    <input
+                      type="text"
+                      value="https://storage.googleapis.com/cyberchicmodels-media"
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500">Environment variables are configured in your deployment settings.</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Modals */}
-      {showAddModel && <AddModelModal />}
-      {showAddStyle && <AddStyleModal />}
-      {showAddSlide && <AddSlideModal />}
+      {/* Add Model Modal */}
+      {showAddModel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold">Add New Model</h3>
+                <button
+                  onClick={() => setShowAddModel(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={submitModel} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Model Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={modelForm.name}
+                      onChange={(e) => setModelForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                      placeholder="e.g., Sophia Martinez"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
+                    <input
+                      type="text"
+                      value={modelForm.tagline}
+                      onChange={(e) => setModelForm(prev => ({ ...prev, tagline: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                      placeholder="e.g., Fashion Forward"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
+                    <input
+                      type="text"
+                      value={modelForm.nationality}
+                      onChange={(e) => setModelForm(prev => ({ ...prev, nationality: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                      placeholder="e.g., Spanish"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                    <input
+                      type="number"
+                      value={modelForm.age}
+                      onChange={(e) => setModelForm(prev => ({ ...prev, age: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                      placeholder="25"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={modelForm.price_usd}
+                    onChange={(e) => setModelForm(prev => ({ ...prev, price_usd: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                    placeholder="1.99"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                  <textarea
+                    value={modelForm.bio}
+                    onChange={(e) => setModelForm(prev => ({ ...prev, bio: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                    placeholder="Professional fashion model with experience in..."
+                  />
+                </div>
+
+                {/* Model Flags */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Model Flags</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={modelForm.is_featured}
+                        onChange={(e) => setModelForm(prev => ({ ...prev, is_featured: e.target.checked }))}
+                        className="mr-2"
+                      />
+                      ⭐ Featured
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={modelForm.is_new}
+                        onChange={(e) => setModelForm(prev => ({ ...prev, is_new: e.target.checked }))}
+                        className="mr-2"
+                      />
+                      🆕 New
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={modelForm.is_coming}
+                        onChange={(e) => setModelForm(prev => ({ ...prev, is_coming: e.target.checked }))}
+                        className="mr-2"
+                      />
+                      🔜 Coming Soon
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={modelForm.is_popular}
+                        onChange={(e) => setModelForm(prev => ({ ...prev, is_popular: e.target.checked }))}
+                        className="mr-2"
+                      />
+                      🔥 Popular
+                    </label>
+                  </div>
+                </div>
+
+                {/* Collections */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Collections</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={newCollection}
+                      onChange={(e) => setNewCollection(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCollection())}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                      placeholder="Enter collection name"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCollection}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {modelForm.collections.map((collection) => (
+                      <span
+                        key={collection}
+                        className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                      >
+                        {collection}
+                        <button
+                          type="button"
+                          onClick={() => removeCollection(collection)}
+                          className="ml-2 text-blue-600 hover:text-blue-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Image Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Model Images</label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e.target.files, 'model')}
+                      className="hidden"
+                      id="model-images"
+                    />
+                    <label htmlFor="model-images" className="cursor-pointer">
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-600">Click to upload images or drag and drop</p>
+                      <p className="text-sm text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    </label>
+                  </div>
+
+                  {/* Image Preview */}
+                  {uploadedImages.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                      {uploadedImages.map((image) => (
+                        <div key={image.id} className="relative border rounded-lg p-3">
+                          <img
+                            src={image.preview}
+                            alt="Preview"
+                            className="w-full h-32 object-cover rounded mb-2"
+                          />
+                          <div className="space-y-2">
+                            <select
+                              value={image.angle}
+                              onChange={(e) => {
+                                const newImages = uploadedImages.map(img =>
+                                  img.id === image.id ? { ...img, angle: e.target.value } : img
+                                );
+                                setUploadedImages(newImages);
+                              }}
+                              className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                            >
+                              <option value="front">Front View</option>
+                              <option value="back">Back View</option>
+                              <option value="left">Left Side</option>
+                              <option value="right">Right Side</option>
+                              <option value="three_quarter">Three Quarter</option>
+                              <option value="detail">Detail Shot</option>
+                            </select>
+                            <select
+                              value={image.category}
+                              onChange={(e) => {
+                                const newImages = uploadedImages.map(img =>
+                                  img.id === image.id ? { ...img, category: e.target.value } : img
+                                );
+                                setUploadedImages(newImages);
+                              }}
+                              className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                            >
+                              <option value="thumbnail">Thumbnail</option>
+                              <option value="gallery">Gallery</option>
+                              <option value="hero">Hero Image</option>
+                            </select>
+                            <input
+                              type="text"
+                              placeholder="Description"
+                              value={image.description}
+                              onChange={(e) => {
+                                const newImages = uploadedImages.map(img =>
+                                  img.id === image.id ? { ...img, description: e.target.value } : img
+                                );
+                                setUploadedImages(newImages);
+                              }}
+                              className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(image.id)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModel(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700"
+                  >
+                    Create Model
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Style Modal */}
+      {showAddStyle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold">Add New Style</h3>
+                <button
+                  onClick={() => setShowAddStyle(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={submitStyle} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Style Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={styleForm.name}
+                    onChange={(e) => setStyleForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                    placeholder="e.g., Evening Glam Dress"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={styleForm.description}
+                    onChange={(e) => setStyleForm(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                    placeholder="Elegant evening dress perfect for special occasions..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select
+                      value={styleForm.category}
+                      onChange={(e) => setStyleForm(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                    >
+                      <option value="">Select Category</option>
+                      <option value="dress">Dress</option>
+                      <option value="top">Top</option>
+                      <option value="bottom">Bottom</option>
+                      <option value="outerwear">Outerwear</option>
+                      <option value="accessories">Accessories</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={styleForm.price_usd}
+                      onChange={(e) => setStyleForm(prev => ({ ...prev, price_usd: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                      placeholder="29.99"
+                    />
+                  </div>
+                </div>
+
+                {/* Style Flags */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Style Flags</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={styleForm.is_featured}
+                        onChange={(e) => setStyleForm(prev => ({ ...prev, is_featured: e.target.checked }))}
+                        className="mr-2"
+                      />
+                      ⭐ Featured
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={styleForm.is_new}
+                        onChange={(e) => setStyleForm(prev => ({ ...prev, is_new: e.target.checked }))}
+                        className="mr-2"
+                      />
+                      🆕 New
+                    </label>
+                  </div>
+                </div>
+
+                {/* Colors */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Available Colors</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="color"
+                      value={newColor}
+                      onChange={(e) => setNewColor(e.target.value)}
+                      className="w-12 h-10 border border-gray-300 rounded"
+                    />
+                    <button
+                      type="button"
+                      onClick={addColor}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    >
+                      Add Color
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {styleForm.colors.map((color) => (
+                      <span
+                        key={color}
+                        className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 text-sm rounded-full"
+                      >
+                        <div
+                          className="w-4 h-4 rounded-full mr-2"
+                          style={{ backgroundColor: color }}
+                        ></div>
+                        {color}
+                        <button
+                          type="button"
+                          onClick={() => removeColor(color)}
+                          className="ml-2 text-gray-600 hover:text-gray-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sizes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Available Sizes</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={newSize}
+                      onChange={(e) => setNewSize(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSize())}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                      placeholder="e.g., XS, S, M, L, XL"
+                    />
+                    <button
+                      type="button"
+                      onClick={addSize}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    >
+                      Add Size
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {styleForm.sizes.map((size) => (
+                      <span
+                        key={size}
+                        className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                      >
+                        {size}
+                        <button
+                          type="button"
+                          onClick={() => removeSize(size)}
+                          className="ml-2 text-blue-600 hover:text-blue-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Image Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Style Images</label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e.target.files, 'style')}
+                      className="hidden"
+                      id="style-images"
+                    />
+                    <label htmlFor="style-images" className="cursor-pointer">
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-600">Click to upload images or drag and drop</p>
+                      <p className="text-sm text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    </label>
+                  </div>
+
+                  {/* Image Preview */}
+                  {uploadedImages.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                      {uploadedImages.map((image) => (
+                        <div key={image.id} className="relative border rounded-lg p-3">
+                          <img
+                            src={image.preview}
+                            alt="Preview"
+                            className="w-full h-32 object-cover rounded mb-2"
+                          />
+                          <div className="space-y-2">
+                            <select
+                              value={image.angle}
+                              onChange={(e) => {
+                                const newImages = uploadedImages.map(img =>
+                                  img.id === image.id ? { ...img, angle: e.target.value } : img
+                                );
+                                setUploadedImages(newImages);
+                              }}
+                              className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                            >
+                              <option value="front">Front View</option>
+                              <option value="back">Back View</option>
+                              <option value="left">Left Side</option>
+                              <option value="right">Right Side</option>
+                              <option value="detail">Detail Shot</option>
+                            </select>
+                            <input
+                              type="text"
+                              placeholder="Description"
+                              value={image.description}
+                              onChange={(e) => {
+                                const newImages = uploadedImages.map(img =>
+                                  img.id === image.id ? { ...img, description: e.target.value } : img
+                                );
+                                setUploadedImages(newImages);
+                              }}
+                              className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(image.id)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddStyle(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700"
+                  >
+                    Create Style
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Hero Slide Modal */}
+      {showAddSlide && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold">Add New Hero Slide</h3>
+                <button
+                  onClick={() => setShowAddSlide(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={submitHeroSlide} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Slide Title *</label>
+                  <input
+                    type="text"
+                    required
+                    value={heroForm.title}
+                    onChange={(e) => setHeroForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                    placeholder="e.g., Discover Your Style"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+                  <input
+                    type="text"
+                    value={heroForm.subtitle}
+                    onChange={(e) => setHeroForm(prev => ({ ...prev, subtitle: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                    placeholder="e.g., Premium AI-generated fashion models"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+                    <input
+                      type="text"
+                      value={heroForm.button_text}
+                      onChange={(e) => setHeroForm(prev => ({ ...prev, button_text: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                      placeholder="Shop Now"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Button Link</label>
+                    <input
+                      type="text"
+                      value={heroForm.button_link}
+                      onChange={(e) => setHeroForm(prev => ({ ...prev, button_link: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                      placeholder="/models"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Carousel Order</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={heroForm.display_order}
+                      onChange={(e) => setHeroForm(prev => ({ ...prev, display_order: parseInt(e.target.value) }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Background Color</label>
+                    <input
+                      type="color"
+                      value={heroForm.background_color}
+                      onChange={(e) => setHeroForm(prev => ({ ...prev, background_color: e.target.value }))}
+                      className="w-full h-10 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={heroForm.is_active}
+                      onChange={(e) => setHeroForm(prev => ({ ...prev, is_active: e.target.checked }))}
+                      className="mr-2"
+                    />
+                    Active Slide
+                  </label>
+                </div>
+
+                {/* Background Image Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Background Image</label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e.target.files, 'hero')}
+                      className="hidden"
+                      id="hero-image"
+                    />
+                    <label htmlFor="hero-image" className="cursor-pointer">
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-600">Click to upload background image</p>
+                      <p className="text-sm text-gray-500">PNG, JPG up to 10MB (recommended: 1920x1080)</p>
+                    </label>
+                  </div>
+
+                  {/* Image Preview */}
+                  {uploadedImages.length > 0 && (
+                    <div className="mt-4">
+                      <div className="relative border rounded-lg p-3">
+                        <img
+                          src={uploadedImages[0].preview}
+                          alt="Background Preview"
+                          className="w-full h-48 object-cover rounded"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setUploadedImages([])}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Live Preview */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Live Preview</label>
+                  <div 
+                    className="relative rounded-lg p-8 text-white min-h-[200px] flex items-center justify-center"
+                    style={{ 
+                      backgroundColor: heroForm.background_color,
+                      backgroundImage: uploadedImages.length > 0 ? `url(${uploadedImages[0].preview})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    }}
+                  >
+                    <div className="text-center">
+                      <h2 className="text-3xl font-bold mb-2">{heroForm.title || 'Slide Title'}</h2>
+                      {heroForm.subtitle && <p className="text-lg mb-4">{heroForm.subtitle}</p>}
+                      <button className="bg-white text-gray-900 px-6 py-2 rounded-md font-medium">
+                        {heroForm.button_text}
+                      </button>
+                    </div>
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                      Order: {heroForm.display_order}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSlide(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700"
+                  >
+                    Create Hero Slide
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
