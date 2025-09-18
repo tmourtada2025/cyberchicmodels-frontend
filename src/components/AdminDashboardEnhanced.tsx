@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Palette, Image, BarChart3, Bot, Settings, Plus, LogOut, X, Home } from 'lucide-react';
+import { Users, Palette, Image, BarChart3, Bot, Settings, Plus, DoorOpen, Home } from 'lucide-react';
 import { apiService } from '../lib/api';
 import type { Model, Style } from '../lib/api';
 
@@ -52,6 +52,12 @@ export function AdminDashboardEnhanced({ onLogout }: AdminDashboardProps) {
   const showError = (message: string) => {
     setError(message);
     setTimeout(() => setError(null), 5000);
+  };
+
+  const handleExitAdmin = () => {
+    if (window.confirm('Are you sure you want to exit the admin panel?')) {
+      onLogout();
+    }
   };
 
   const handleCreateModel = async (formData: FormData) => {
@@ -126,242 +132,502 @@ export function AdminDashboardEnhanced({ onLogout }: AdminDashboardProps) {
   };
 
   // Enhanced Add Model Modal Component
-  const AddModelModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-          <h3 className="text-xl font-semibold">Add New Model</h3>
-          <button onClick={() => setShowAddModel(false)} className="text-gray-500 hover:text-gray-700">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-        
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const formData = new FormData(e.target as HTMLFormElement);
-          handleCreateModel(formData);
-        }} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Model Name *</label>
-              <input name="name" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Sophia Martinez" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
-              <input name="tagline" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Fashion Forward" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
-              <input name="nationality" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Spanish" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-              <input name="age" type="number" min="18" max="65" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="25" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
-              <input name="price" type="number" step="0.01" min="0.99" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1.99" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-              <textarea name="bio" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Professional fashion model with experience in..."></textarea>
-            </div>
+  const AddModelModal = () => {
+    const [modelImages, setModelImages] = useState<File[]>([]);
+    const [modelCollections, setModelCollections] = useState<string[]>([]);
+    const [newCollection, setNewCollection] = useState('');
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      setModelImages(prev => [...prev, ...files]);
+    };
+
+    const removeImage = (index: number) => {
+      setModelImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const addCollection = () => {
+      if (newCollection.trim() && !modelCollections.includes(newCollection.trim())) {
+        setModelCollections(prev => [...prev, newCollection.trim()]);
+        setNewCollection('');
+      }
+    };
+
+    const removeCollection = (collection: string) => {
+      setModelCollections(prev => prev.filter(c => c !== collection));
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+            <h3 className="text-xl font-semibold">Add New Model</h3>
+            <button onClick={() => setShowAddModel(false)} className="text-gray-500 hover:text-gray-700">
+              ✕
+            </button>
           </div>
           
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Model Flags</label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input name="featured" type="checkbox" className="rounded border-gray-300" />
-                <span className="text-sm">⭐ Featured</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input name="new" type="checkbox" defaultChecked className="rounded border-gray-300" />
-                <span className="text-sm">🆕 New</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input name="coming" type="checkbox" className="rounded border-gray-300" />
-                <span className="text-sm">🔜 Coming Soon</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input name="popular" type="checkbox" className="rounded border-gray-300" />
-                <span className="text-sm">🔥 Popular</span>
-              </label>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target as HTMLFormElement);
+            handleCreateModel(formData);
+          }} className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Model Name *</label>
+                <input name="name" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Sophia Martinez" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
+                <input name="tagline" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Fashion Forward" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
+                <input name="nationality" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Spanish" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                <input name="age" type="number" min="18" max="65" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="25" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
+                <input name="price" type="number" step="0.01" min="0.99" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1.99" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                <textarea name="bio" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Professional fashion model with experience in..."></textarea>
+              </div>
             </div>
-          </div>
+            
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Model Flags</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input name="featured" type="checkbox" className="rounded border-gray-300" />
+                  <span className="text-sm">⭐ Featured</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input name="new" type="checkbox" defaultChecked className="rounded border-gray-300" />
+                  <span className="text-sm">🆕 New</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input name="coming" type="checkbox" className="rounded border-gray-300" />
+                  <span className="text-sm">🔜 Coming Soon</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input name="popular" type="checkbox" className="rounded border-gray-300" />
+                  <span className="text-sm">🔥 Popular</span>
+                </label>
+              </div>
+            </div>
 
-          <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
-            <button type="button" onClick={() => setShowAddModel(false)} className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
-              Cancel
-            </button>
-            <button type="submit" className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
-              Create Model
-            </button>
-          </div>
-        </form>
+            {/* Collections Section */}
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Collections</label>
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={newCollection}
+                  onChange={(e) => setNewCollection(e.target.value)}
+                  className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="Enter collection name"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCollection())}
+                />
+                <button
+                  type="button"
+                  onClick={addCollection}
+                  className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                >
+                  Add
+                </button>
+              </div>
+              {modelCollections.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {modelCollections.map((collection, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                    >
+                      {collection}
+                      <button
+                        type="button"
+                        onClick={() => removeCollection(collection)}
+                        className="ml-2 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Images Section */}
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Model Images</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="model-image-upload"
+                />
+                <label htmlFor="model-image-upload" className="cursor-pointer">
+                  <div className="text-gray-400 mb-2">📁</div>
+                  <p className="text-sm text-gray-600">Click to upload images</p>
+                </label>
+              </div>
+              
+              {modelImages.length > 0 && (
+                <div className="mt-4 grid grid-cols-3 gap-4">
+                  {modelImages.map((image, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={URL.createObjectURL(image)}
+                        alt={`Upload ${index + 1}`}
+                        className="w-full h-24 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
+              <button type="button" onClick={() => setShowAddModel(false)} className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+                Cancel
+              </button>
+              <button type="submit" className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
+                Create Model
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Enhanced Add Style Modal Component
-  const AddStyleModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-          <h3 className="text-xl font-semibold">Add New Style</h3>
-          <button onClick={() => setShowAddStyle(false)} className="text-gray-500 hover:text-gray-700">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-        
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const formData = new FormData(e.target as HTMLFormElement);
-          handleCreateStyle(formData);
-        }} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Style Name *</label>
-              <input name="name" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Elegant Evening Dress" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Clothing Type</label>
-              <select name="clothing_type" className="w-full border border-gray-300 rounded-md px-3 py-2">
-                <option value="">Select type</option>
-                <option value="dress">Dress</option>
-                <option value="top">Top</option>
-                <option value="bottom">Bottom</option>
-                <option value="outerwear">Outerwear</option>
-                <option value="accessories">Accessories</option>
-                <option value="shoes">Shoes</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select name="category" className="w-full border border-gray-300 rounded-md px-3 py-2">
-                <option value="">Select category</option>
-                <option value="casual">Casual</option>
-                <option value="formal">Formal</option>
-                <option value="business">Business</option>
-                <option value="party">Party</option>
-                <option value="beach">Beach</option>
-                <option value="sports">Sports</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
-              <input name="price" type="number" step="0.01" min="0.99" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1.99" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea name="description" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Describe this style..."></textarea>
-            </div>
+  const AddStyleModal = () => {
+    const [styleImages, setStyleImages] = useState<File[]>([]);
+    const [colors, setColors] = useState<string[]>(['#ff0000']);
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      setStyleImages(prev => [...prev, ...files]);
+    };
+
+    const removeImage = (index: number) => {
+      setStyleImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const addColor = () => {
+      setColors(prev => [...prev, '#ff0000']);
+    };
+
+    const updateColor = (index: number, color: string) => {
+      setColors(prev => prev.map((c, i) => i === index ? color : c));
+    };
+
+    const removeColor = (index: number) => {
+      if (colors.length > 1) {
+        setColors(prev => prev.filter((_, i) => i !== index));
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+            <h3 className="text-xl font-semibold">Add New Style</h3>
+            <button onClick={() => setShowAddStyle(false)} className="text-gray-500 hover:text-gray-700">
+              ✕
+            </button>
           </div>
           
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Style Flags</label>
-            <div className="grid grid-cols-3 gap-4">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input name="featured" type="checkbox" className="rounded border-gray-300" />
-                <span className="text-sm">⭐ Featured</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input name="new" type="checkbox" defaultChecked className="rounded border-gray-300" />
-                <span className="text-sm">🆕 New</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input name="bestseller" type="checkbox" className="rounded border-gray-300" />
-                <span className="text-sm">🏆 Bestseller</span>
-              </label>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target as HTMLFormElement);
+            handleCreateStyle(formData);
+          }} className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Style Name *</label>
+                <input name="name" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Elegant Evening Dress" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Clothing Type</label>
+                <select name="clothing_type" className="w-full border border-gray-300 rounded-md px-3 py-2">
+                  <option value="">Select type</option>
+                  <option value="dress">Dress</option>
+                  <option value="top">Top</option>
+                  <option value="bottom">Bottom</option>
+                  <option value="outerwear">Outerwear</option>
+                  <option value="accessories">Accessories</option>
+                  <option value="shoes">Shoes</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select name="category" className="w-full border border-gray-300 rounded-md px-3 py-2">
+                  <option value="">Select category</option>
+                  <option value="casual">Casual</option>
+                  <option value="formal">Formal</option>
+                  <option value="business">Business</option>
+                  <option value="party">Party</option>
+                  <option value="beach">Beach</option>
+                  <option value="sports">Sports</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
+                <input name="price" type="number" step="0.01" min="0.99" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1.99" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea name="description" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Describe this style..."></textarea>
+              </div>
             </div>
-          </div>
 
-          <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
-            <button type="button" onClick={() => setShowAddStyle(false)} className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
-              Cancel
-            </button>
-            <button type="submit" className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
-              Create Style
-            </button>
-          </div>
-        </form>
+            {/* Colors Section */}
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Available Colors</label>
+              <div className="flex flex-wrap gap-4 mb-4">
+                {colors.map((color, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => updateColor(index, e.target.value)}
+                      className="w-10 h-10 border border-gray-300 rounded cursor-pointer"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeColor(index)}
+                      className="text-red-500 hover:text-red-700"
+                      disabled={colors.length === 1}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addColor}
+                  className="w-10 h-10 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 hover:border-rose-400"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Images Section */}
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Style Images</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="style-image-upload"
+                />
+                <label htmlFor="style-image-upload" className="cursor-pointer">
+                  <div className="text-gray-400 mb-2">📁</div>
+                  <p className="text-sm text-gray-600">Click to upload style images</p>
+                </label>
+              </div>
+              
+              {styleImages.length > 0 && (
+                <div className="mt-4 grid grid-cols-3 gap-4">
+                  {styleImages.map((image, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={URL.createObjectURL(image)}
+                        alt={`Style ${index + 1}`}
+                        className="w-full h-24 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Style Flags</label>
+              <div className="grid grid-cols-3 gap-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input name="featured" type="checkbox" className="rounded border-gray-300" />
+                  <span className="text-sm">⭐ Featured</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input name="new" type="checkbox" defaultChecked className="rounded border-gray-300" />
+                  <span className="text-sm">🆕 New</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input name="bestseller" type="checkbox" className="rounded border-gray-300" />
+                  <span className="text-sm">🏆 Bestseller</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
+              <button type="button" onClick={() => setShowAddStyle(false)} className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+                Cancel
+              </button>
+              <button type="submit" className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
+                Create Style
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Enhanced Add Hero Slide Modal Component
-  const AddSlideModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-          <h3 className="text-xl font-semibold">Add New Hero Slide</h3>
-          <button onClick={() => setShowAddSlide(false)} className="text-gray-500 hover:text-gray-700">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-        
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const formData = new FormData(e.target as HTMLFormElement);
-          handleCreateHeroSlide(formData);
-        }} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-              <input name="title" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Discover Your Style" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
-              <input name="subtitle" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Explore our latest collection" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
-              <input name="button_text" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Shop Now" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Button Link</label>
-              <input name="button_link" type="url" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="https://..." />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Background Color</label>
-              <input name="background_color" type="color" className="w-full border border-gray-300 rounded-md px-3 py-2 h-10" defaultValue="#667eea" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
-              <input name="display_order" type="number" min="1" max="10" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea name="description" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Describe this slide..."></textarea>
-            </div>
+  const AddSlideModal = () => {
+    const [heroImages, setHeroImages] = useState<File[]>([]);
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      setHeroImages(prev => [...prev, ...files]);
+    };
+
+    const removeImage = (index: number) => {
+      setHeroImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+            <h3 className="text-xl font-semibold">Add New Hero Slide</h3>
+            <button onClick={() => setShowAddSlide(false)} className="text-gray-500 hover:text-gray-700">
+              ✕
+            </button>
           </div>
           
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Slide Settings</label>
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input name="active" type="checkbox" defaultChecked className="rounded border-gray-300" />
-                <span className="text-sm">✅ Active</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input name="featured" type="checkbox" className="rounded border-gray-300" />
-                <span className="text-sm">⭐ Featured</span>
-              </label>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target as HTMLFormElement);
+            handleCreateHeroSlide(formData);
+          }} className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                <input name="title" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Discover Your Style" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+                <input name="subtitle" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Explore our latest collection" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+                <input name="button_text" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Shop Now" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Button Link</label>
+                <input name="button_link" type="url" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="https://..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Background Color</label>
+                <input name="background_color" type="color" className="w-full border border-gray-300 rounded-md px-3 py-2 h-10" defaultValue="#667eea" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
+                <input name="display_order" type="number" min="1" max="10" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea name="description" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Describe this slide..."></textarea>
+              </div>
             </div>
-          </div>
 
-          <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
-            <button type="button" onClick={() => setShowAddSlide(false)} className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
-              Cancel
-            </button>
-            <button type="submit" className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
-              Create Slide
-            </button>
-          </div>
-        </form>
+            {/* Images Section */}
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Background Images</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="hero-image-upload"
+                />
+                <label htmlFor="hero-image-upload" className="cursor-pointer">
+                  <div className="text-gray-400 mb-2">📁</div>
+                  <p className="text-sm text-gray-600">Click to upload background images</p>
+                </label>
+              </div>
+              
+              {heroImages.length > 0 && (
+                <div className="mt-4 grid grid-cols-3 gap-4">
+                  {heroImages.map((image, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={URL.createObjectURL(image)}
+                        alt={`Background ${index + 1}`}
+                        className="w-full h-24 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Slide Settings</label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input name="active" type="checkbox" defaultChecked className="rounded border-gray-300" />
+                  <span className="text-sm">✅ Active</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input name="featured" type="checkbox" className="rounded border-gray-300" />
+                  <span className="text-sm">⭐ Featured</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
+              <button type="button" onClick={() => setShowAddSlide(false)} className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+                Cancel
+              </button>
+              <button type="submit" className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
+                Create Slide
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderModelsTab = () => (
     <div className="space-y-6">
@@ -510,7 +776,7 @@ export function AdminDashboardEnhanced({ onLogout }: AdminDashboardProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with Logout */}
+      {/* Header with Exit Door */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -527,11 +793,11 @@ export function AdminDashboardEnhanced({ onLogout }: AdminDashboardProps) {
                 Back to Site
               </button>
               <button 
-                onClick={onLogout}
+                onClick={handleExitAdmin}
                 className="flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
+                <DoorOpen className="w-4 h-4 mr-2" />
+                Exit Admin
               </button>
             </div>
           </div>
