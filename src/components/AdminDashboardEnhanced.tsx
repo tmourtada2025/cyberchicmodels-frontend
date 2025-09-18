@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Users, Palette, Image, BarChart3, Bot, Settings, Plus, LogOut, X } from 'lucide-react';
+import { Users, Palette, Image, BarChart3, Bot, Settings, Plus, LogOut, X, Home } from 'lucide-react';
 import { apiService } from '../lib/api';
 import type { Model, Style } from '../lib/api';
 
@@ -8,7 +7,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-export function AdminDashboard({ onLogout }: AdminDashboardProps) {
+export function AdminDashboardEnhanced({ onLogout }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState('models');
   const [models, setModels] = useState<Model[]>([]);
   const [styles, setStyles] = useState<Style[]>([]);
@@ -55,40 +54,147 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setTimeout(() => setError(null), 5000);
   };
 
-  // Add Model Modal Component
+  const handleCreateModel = async (formData: FormData) => {
+    try {
+      const modelData = {
+        name: formData.get('name') as string,
+        tagline: formData.get('tagline') as string,
+        nationality: formData.get('nationality') as string,
+        age: parseInt(formData.get('age') as string) || null,
+        bio: formData.get('bio') as string,
+        price_usd: parseFloat(formData.get('price') as string) || 1.99,
+        is_featured: formData.get('featured') === 'on',
+        is_new: formData.get('new') === 'on',
+        is_coming: formData.get('coming') === 'on',
+        is_popular: formData.get('popular') === 'on',
+        status: 'published'
+      };
+
+      // Try to create model via API
+      await apiService.createModel(modelData);
+      showSuccess(`Model "${modelData.name}" created successfully!`);
+      loadData(); // Refresh data
+      setShowAddModel(false);
+    } catch (err) {
+      showError('Failed to create model. Please check backend connection.');
+    }
+  };
+
+  const handleCreateStyle = async (formData: FormData) => {
+    try {
+      const styleData = {
+        name: formData.get('name') as string,
+        clothing_type: formData.get('clothing_type') as string,
+        category: formData.get('category') as string,
+        description: formData.get('description') as string,
+        price_usd: parseFloat(formData.get('price') as string) || 1.99,
+        is_featured: formData.get('featured') === 'on',
+        is_new: formData.get('new') === 'on',
+        status: 'published'
+      };
+
+      await apiService.createStyle(styleData);
+      showSuccess(`Style "${styleData.name}" created successfully!`);
+      loadData();
+      setShowAddStyle(false);
+    } catch (err) {
+      showError('Failed to create style. Please check backend connection.');
+    }
+  };
+
+  const handleCreateHeroSlide = async (formData: FormData) => {
+    try {
+      const slideData = {
+        title: formData.get('title') as string,
+        subtitle: formData.get('subtitle') as string,
+        button_text: formData.get('button_text') as string,
+        button_link: formData.get('button_link') as string,
+        description: formData.get('description') as string,
+        background_color: formData.get('background_color') as string,
+        display_order: parseInt(formData.get('display_order') as string) || 1,
+        is_active: formData.get('active') === 'on',
+        is_featured: formData.get('featured') === 'on'
+      };
+
+      await apiService.createHeroSlide(slideData);
+      showSuccess(`Hero slide "${slideData.title}" created successfully!`);
+      loadData();
+      setShowAddSlide(false);
+    } catch (err) {
+      showError('Failed to create hero slide. Please check backend connection.');
+    }
+  };
+
+  // Enhanced Add Model Modal Component
   const AddModelModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Add New Model</h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+          <h3 className="text-xl font-semibold">Add New Model</h3>
           <button onClick={() => setShowAddModel(false)} className="text-gray-500 hover:text-gray-700">
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
+        
         <form onSubmit={(e) => {
           e.preventDefault();
-          showSuccess('Model creation feature will be available once backend is connected');
-          setShowAddModel(false);
-        }}>
-          <div className="space-y-4">
+          const formData = new FormData(e.target as HTMLFormElement);
+          handleCreateModel(formData);
+        }} className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Model Name</label>
-              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter model name" required />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Model Name *</label>
+              <input name="name" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Sophia Martinez" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
+              <input name="tagline" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Fashion Forward" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
-              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter nationality" />
+              <input name="nationality" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Spanish" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-              <input type="number" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter age" />
+              <input name="age" type="number" min="18" max="65" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="25" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
+              <input name="price" type="number" step="0.01" min="0.99" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1.99" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+              <textarea name="bio" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Professional fashion model with experience in..."></textarea>
             </div>
           </div>
-          <div className="flex justify-end space-x-3 mt-6">
-            <button type="button" onClick={() => setShowAddModel(false)} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+          
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">Model Flags</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input name="featured" type="checkbox" className="rounded border-gray-300" />
+                <span className="text-sm">⭐ Featured</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input name="new" type="checkbox" defaultChecked className="rounded border-gray-300" />
+                <span className="text-sm">🆕 New</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input name="coming" type="checkbox" className="rounded border-gray-300" />
+                <span className="text-sm">🔜 Coming Soon</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input name="popular" type="checkbox" className="rounded border-gray-300" />
+                <span className="text-sm">🔥 Popular</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
+            <button type="button" onClick={() => setShowAddModel(false)} className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
               Cancel
             </button>
-            <button type="submit" className="px-4 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
+            <button type="submit" className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
               Create Model
             </button>
           </div>
@@ -97,46 +203,84 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     </div>
   );
 
-  // Add Style Modal Component
+  // Enhanced Add Style Modal Component
   const AddStyleModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Add New Style</h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+          <h3 className="text-xl font-semibold">Add New Style</h3>
           <button onClick={() => setShowAddStyle(false)} className="text-gray-500 hover:text-gray-700">
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
+        
         <form onSubmit={(e) => {
           e.preventDefault();
-          showSuccess('Style creation feature will be available once backend is connected');
-          setShowAddStyle(false);
-        }}>
-          <div className="space-y-4">
+          const formData = new FormData(e.target as HTMLFormElement);
+          handleCreateStyle(formData);
+        }} className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Style Name</label>
-              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter style name" required />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Style Name *</label>
+              <input name="name" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Elegant Evening Dress" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Clothing Type</label>
-              <select className="w-full border border-gray-300 rounded-md px-3 py-2">
+              <select name="clothing_type" className="w-full border border-gray-300 rounded-md px-3 py-2">
                 <option value="">Select type</option>
                 <option value="dress">Dress</option>
                 <option value="top">Top</option>
                 <option value="bottom">Bottom</option>
                 <option value="outerwear">Outerwear</option>
+                <option value="accessories">Accessories</option>
+                <option value="shoes">Shoes</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <select name="category" className="w-full border border-gray-300 rounded-md px-3 py-2">
+                <option value="">Select category</option>
+                <option value="casual">Casual</option>
+                <option value="formal">Formal</option>
+                <option value="business">Business</option>
+                <option value="party">Party</option>
+                <option value="beach">Beach</option>
+                <option value="sports">Sports</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
-              <input type="number" step="0.01" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1.99" />
+              <input name="price" type="number" step="0.01" min="0.99" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1.99" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea name="description" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Describe this style..."></textarea>
             </div>
           </div>
-          <div className="flex justify-end space-x-3 mt-6">
-            <button type="button" onClick={() => setShowAddStyle(false)} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+          
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">Style Flags</label>
+            <div className="grid grid-cols-3 gap-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input name="featured" type="checkbox" className="rounded border-gray-300" />
+                <span className="text-sm">⭐ Featured</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input name="new" type="checkbox" defaultChecked className="rounded border-gray-300" />
+                <span className="text-sm">🆕 New</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input name="bestseller" type="checkbox" className="rounded border-gray-300" />
+                <span className="text-sm">🏆 Bestseller</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
+            <button type="button" onClick={() => setShowAddStyle(false)} className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
               Cancel
             </button>
-            <button type="submit" className="px-4 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
+            <button type="submit" className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
               Create Style
             </button>
           </div>
@@ -145,44 +289,72 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     </div>
   );
 
-  // Add Slide Modal Component
+  // Enhanced Add Hero Slide Modal Component
   const AddSlideModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Add New Hero Slide</h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+          <h3 className="text-xl font-semibold">Add New Hero Slide</h3>
           <button onClick={() => setShowAddSlide(false)} className="text-gray-500 hover:text-gray-700">
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
+        
         <form onSubmit={(e) => {
           e.preventDefault();
-          showSuccess('Hero slide creation feature will be available once backend is connected');
-          setShowAddSlide(false);
-        }}>
-          <div className="space-y-4">
+          const formData = new FormData(e.target as HTMLFormElement);
+          handleCreateHeroSlide(formData);
+        }} className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter slide title" required />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+              <input name="title" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Discover Your Style" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
-              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter subtitle" />
+              <input name="subtitle" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Explore our latest collection" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
-              <input type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter button text" />
+              <input name="button_text" type="text" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Shop Now" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Button Link</label>
-              <input type="url" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter button URL" />
+              <input name="button_link" type="url" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="https://..." />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Background Color</label>
+              <input name="background_color" type="color" className="w-full border border-gray-300 rounded-md px-3 py-2 h-10" defaultValue="#667eea" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
+              <input name="display_order" type="number" min="1" max="10" className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea name="description" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Describe this slide..."></textarea>
             </div>
           </div>
-          <div className="flex justify-end space-x-3 mt-6">
-            <button type="button" onClick={() => setShowAddSlide(false)} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+          
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">Slide Settings</label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input name="active" type="checkbox" defaultChecked className="rounded border-gray-300" />
+                <span className="text-sm">✅ Active</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input name="featured" type="checkbox" className="rounded border-gray-300" />
+                <span className="text-sm">⭐ Featured</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
+            <button type="button" onClick={() => setShowAddSlide(false)} className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
               Cancel
             </button>
-            <button type="submit" className="px-4 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
+            <button type="submit" className="px-6 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600">
               Create Slide
             </button>
           </div>
@@ -220,6 +392,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <div key={model.id} className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-lg font-semibold">{model.name}</h3>
               <p className="text-gray-600">{model.nationality}</p>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {model.is_featured && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">⭐ Featured</span>}
+                {model.is_new && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">🆕 New</span>}
+                {model.is_coming && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">🔜 Coming</span>}
+                {model.is_popular && <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">🔥 Popular</span>}
+              </div>
             </div>
           ))}
         </div>
@@ -301,16 +479,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const renderSettingsTab = () => (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Settings</h2>
-        <button 
-          onClick={onLogout}
-          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
-        </button>
-      </div>
+      <h2 className="text-2xl font-bold">Settings</h2>
 
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold mb-4">API Configuration</h3>
@@ -341,26 +510,54 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header with Logout */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-2xl font-bold text-gray-900">CyberChicModels.ai</h1>
+              <span className="text-sm text-gray-500">Admin Dashboard</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => window.location.href = '/'}
+                className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Back to Site
+              </button>
+              <button 
+                onClick={onLogout}
+                className="flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Success/Error Messages */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4 mx-6 mt-6">
-          ⚠️ {error}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            ⚠️ {error}
+          </div>
         </div>
       )}
       
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md mb-4 mx-6 mt-6">
-          ✅ {success}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+            ✅ {success}
+          </div>
         </div>
       )}
 
       <div className="flex">
         {/* Sidebar */}
         <div className="w-64 bg-white shadow-lg min-h-screen">
-          <div className="p-6">
-            <h1 className="text-xl font-bold text-gray-800">Admin Dashboard</h1>
-          </div>
-          
           <nav className="mt-6">
             <button
               onClick={() => setActiveTab('models')}
