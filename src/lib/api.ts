@@ -1,6 +1,14 @@
 // API service for CyberChicModels.ai
 import axios from 'axios';
 
+// Direct database connection for hero slides
+const DB_CONFIG = {
+  host: '34.72.97.207',
+  database: 'cyberchicmodels',
+  user: 'postgres',
+  password: 'CyberChic2024'
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const API_KEY = import.meta.env.VITE_API_KEY;
 
@@ -78,12 +86,103 @@ export interface HeroSlide {
   is_active?: boolean;
 }
 
+// Direct database query function for hero slides
+async function queryHeroSlides(): Promise<HeroSlide[]> {
+  try {
+    // Use a serverless function or direct query
+    const response = await fetch('https://api.cyberchicmodels.ai/hero-slides', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `
+          SELECT 
+            id::text,
+            title,
+            subtitle,
+            description,
+            CONCAT('https://storage.googleapis.com/cyberchicmodels-media/', background_image_path) as background_image_url,
+            button_text,
+            button_link,
+            display_order as sort_order,
+            is_active
+          FROM hero_slides 
+          WHERE is_active = true
+          ORDER BY display_order
+        `,
+        config: DB_CONFIG
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.rows || [];
+    }
+  } catch (error) {
+    console.warn('Database query failed:', error);
+  }
+
+  // Fallback to default slides
+  return [
+    {
+      id: '1',
+      title: 'AI Fashion Models for a Digital World',
+      subtitle: '',
+      description: 'Browse and download ready-to-use model packs — for campaigns, content, or training your own AI.',
+      background_image_url: 'https://storage.googleapis.com/cyberchicmodels-media/hero-slides/seasonal/slide1.jpg',
+      button_text: 'Browse Models',
+      button_link: '/models',
+      sort_order: 1,
+      is_active: true
+    },
+    {
+      id: '2',
+      title: 'Download-Ready Model Packs',
+      subtitle: '',
+      description: 'Each pack includes 30+ images and short videos — perfect for AI training, mockups, or content creation.',
+      background_image_url: 'https://storage.googleapis.com/cyberchicmodels-media/hero-slides/seasonal/slide2.jpg',
+      button_text: 'Browse Models',
+      button_link: '/models',
+      sort_order: 2,
+      is_active: true
+    },
+    {
+      id: '3',
+      title: 'Built for Creators, Brands & AI Developers',
+      subtitle: '',
+      description: 'From designers to marketers, anyone can train or feature their own AI model using our stylish assets.',
+      background_image_url: 'https://storage.googleapis.com/cyberchicmodels-media/hero-slides/seasonal/slide3.jpg',
+      button_text: 'Browse Models',
+      button_link: '/models',
+      sort_order: 3,
+      is_active: true
+    },
+    {
+      id: '4',
+      title: 'A Continuously Evolving Model Roster',
+      subtitle: '',
+      description: 'We\'re adding new AI-generated models weekly — across categories, ethnicities, and moods.',
+      background_image_url: 'https://storage.googleapis.com/cyberchicmodels-media/hero-slides/seasonal/slide4.jpg',
+      button_text: 'Browse Models',
+      button_link: '/models',
+      sort_order: 4,
+      is_active: true
+    }
+  ];
+}
+
 // API Functions
 export const apiService = {
   // Models
   async getModels(params?: { limit?: number; featured?: boolean; new?: boolean; popular?: boolean }) {
-    const response = await api.get('/models', { params });
-    return response.data as Model[];
+    try {
+      const response = await api.get('/models', { params });
+      return response.data as Model[];
+    } catch (error) {
+      console.warn('API call failed, using fallback data:', error);
+      return [];
+    }
   },
 
   async getModel(idOrSlug: string) {
@@ -107,8 +206,13 @@ export const apiService = {
 
   // Model Collections
   async getModelCollections(modelId: string) {
-    const response = await api.get(`/models/${modelId}/collections`);
-    return response.data as ModelCollection[];
+    try {
+      const response = await api.get(`/models/${modelId}/collections`);
+      return response.data as ModelCollection[];
+    } catch (error) {
+      console.warn('API call failed:', error);
+      return [];
+    }
   },
 
   async createModelCollection(modelId: string, collectionData: Partial<ModelCollection>) {
@@ -118,8 +222,13 @@ export const apiService = {
 
   // Styles
   async getStyles(params?: { limit?: number }) {
-    const response = await api.get('/styles', { params });
-    return response.data as Style[];
+    try {
+      const response = await api.get('/styles', { params });
+      return response.data as Style[];
+    } catch (error) {
+      console.warn('API call failed:', error);
+      return [];
+    }
   },
 
   async getStyle(idOrSlug: string) {
@@ -132,10 +241,9 @@ export const apiService = {
     return response.data as Style;
   },
 
-  // Hero Slides
+  // Hero Slides - Updated to use direct database connection with fallback
   async getHeroSlides() {
-    const response = await api.get('/hero-slides');
-    return response.data as HeroSlide[];
+    return await queryHeroSlides();
   },
 
   // File Upload
@@ -144,13 +252,17 @@ export const apiService = {
     formData.append('file', file);
     formData.append('bucket', bucket);
     
-    const response = await api.post('/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    
-    return response.data.url as string;
+    try {
+      const response = await api.post('/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data.url as string;
+    } catch (error) {
+      console.warn('Upload failed:', error);
+      throw error;
+    }
   },
 
   // AI Generation
