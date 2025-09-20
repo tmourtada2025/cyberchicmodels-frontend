@@ -181,7 +181,7 @@ export const apiService = {
       return response.data as Model[];
     } catch (error) {
       console.warn('API call failed, using fallback data:', error);
-      // Return fallback models with real image URLs
+      // Return simple test models
       return [
         {
           id: 'av01',

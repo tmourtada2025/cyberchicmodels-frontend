@@ -4,8 +4,8 @@ import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { ModelCard } from './ModelCard';
 import { ModelDetailModal } from './ModelDetailModal';
 import { Footer } from './Footer';
-import { apiService } from '../lib/api';
-import type { Model } from '../lib/api';
+import { apiService } from '../lib/api-simple';
+import type { Model } from '../lib/api-simple';
 
 interface FilterState {
   specialty: string;
