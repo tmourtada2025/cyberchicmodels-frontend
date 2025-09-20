@@ -18,12 +18,11 @@ import { Footer } from './components/Footer';
 import { ModelCard } from './components/ModelCard';
 import { ModelDetailModal } from './components/ModelDetailModal';
 import { StylesCarousel } from './components/StylesCarousel';
-import { apiService } from './lib/api';
-import type { Model, Style } from './lib/api';
+import { apiService } from './lib/api-simple';
+import type { Model } from './lib/api-simple';
 
 function App() {
   const [featuredModels, setFeaturedModels] = useState<Model[]>([]);
-  const [featuredStyles, setFeaturedStyles] = useState<Style[]>([]);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,21 +34,19 @@ function App() {
         setLoading(true);
         setError(null);
 
-        // Fetch featured models and styles in parallel
-        const [modelsData, stylesData] = await Promise.all([
-          apiService.getModels({ featured: true, limit: 6 }).catch(() => []),
-          apiService.getStyles({ limit: 6 }).catch(() => [])
-        ]);
-
-        setFeaturedModels(modelsData);
-        setFeaturedStyles(stylesData);
+        // Fetch featured models
+        const modelsData = await apiService.getModels();
+        
+        // Filter for featured models
+        const featuredModelsData = modelsData.filter(model => model.is_featured);
+        
+        setFeaturedModels(featuredModelsData.length > 0 ? featuredModelsData : modelsData.slice(0, 6));
 
       } catch (err) {
         console.error('Error fetching featured content:', err);
         setError('Failed to load content');
-        // Set empty arrays as fallback
+        // Set empty array as fallback
         setFeaturedModels([]);
-        setFeaturedStyles([]);
       } finally {
         setLoading(false);
       }
@@ -130,22 +127,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Featured Styles Section */}
-              <div className="py-12 bg-black">
-                <div className="max-w-7xl mx-auto px-4">
-                  <div className="flex flex-col items-center mb-8">
-                    <h2 className="text-3xl font-serif text-white text-center mb-4">Featured Styles & Digital Couture</h2>
-                  </div>
-                  
-                  {featuredStyles.length > 0 ? (
-                    <>
-                      <StylesCarousel styles={featuredStyles} />
-                      <div className="mt-8 text-center">
-                        <Link
-                          to="/styles"
-                          className="inline-flex items-center justify-center px-8 py-3 bg-white text-black rounded-full hover:bg-opacity-90 transition-colors"
-                        >
-                          Explore All Styles
                           <ChevronRight className="ml-2 h-5 w-5" />
                         </Link>
                       </div>
