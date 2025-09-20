@@ -277,7 +277,7 @@ function SimpleFooter() {
 function ModelCard({ model, onModelClick }) {
   return (
     <div
-      className="relative w-full h-[700px] group cursor-pointer"
+      className="relative w-full h-[500px] group cursor-pointer"
       onClick={() => onModelClick(model)}
     >
       <div className="absolute top-0 left-0 z-10 flex flex-col gap-2 transform -translate-x-2 -translate-y-2">
