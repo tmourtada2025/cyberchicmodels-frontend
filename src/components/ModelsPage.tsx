@@ -16,8 +16,9 @@ interface FilterState {
 }
 
 export function ModelsPage() {
-  const [modelsPerPage, setModelsPerPage] = useState(12);
-  const [displayedModels, setDisplayedModels] = useState(12);
+  const [modelsPerPage, setModelsPerPage] = useState(9); // Initial load count
+  const [displayedModels, setDisplayedModels] = useState(9); // How many are currently displayed
+  const MAX_MODELS_PER_PAGE = 45; // Maximum models to show before Load More disappears
   const [models, setModels] = useState<Model[]>([]);
   const [filteredModels, setFilteredModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +117,7 @@ export function ModelsPage() {
   };
 
   const handleLoadMore = () => {
-    setDisplayedModels(prev => Math.min(prev + modelsPerPage, filteredModels.length));
+    setDisplayedModels(prev => Math.min(prev + modelsPerPage, filteredModels.length, MAX_MODELS_PER_PAGE));
   };
 
   const handleModelClick = (model: Model) => {
@@ -349,7 +350,7 @@ export function ModelsPage() {
                     ))}
                   </div>
 
-                  {displayedModels < filteredModels.length && (
+                  {displayedModels < filteredModels.length && displayedModels < MAX_MODELS_PER_PAGE && (
                     <div className="text-center mt-12">
                       <button
                         onClick={handleLoadMore}
