@@ -105,6 +105,7 @@ function App() {
                             key={model.id} 
                             model={model} 
                             onModelClick={handleModelClick}
+                            variant="homepage"
                           />
                         ))}
                       </div>

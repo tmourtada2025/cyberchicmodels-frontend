@@ -10,9 +10,18 @@ import type { Model } from '../lib/api';
 interface ModelCardProps {
   model: Model;
   onModelClick: (model: Model) => void;
+  variant?: 'homepage' | 'modelsPage';
 }
 
-export function ModelCard({ model, onModelClick }: ModelCardProps) {
+export function ModelCard({ model, onModelClick, variant = 'homepage' }: ModelCardProps) {
+  const cardClasses = variant === 'homepage'
+    ? 'relative w-full h-[700px] group cursor-pointer'
+    : 'relative w-[350px] h-[500px] group cursor-pointer';
+
+  const imageClasses = variant === 'homepage'
+    ? 'w-full h-full object-cover rounded-lg'
+    : 'w-full h-full object-contain rounded-lg bg-gray-100';
+
   const dispatch = useDispatch();
   const [hasLiked, setHasLiked] = useState(false);
   const likes = useSelector((state: RootState) => state.likes.likes[model.id] || 0);
@@ -43,7 +52,7 @@ export function ModelCard({ model, onModelClick }: ModelCardProps) {
 
   return (
     <div
-      className="relative w-full h-[700px] group cursor-pointer"
+      className={cardClasses}
       onClick={handleCardClick}
     >
       <div className="absolute top-0 left-0 z-10 flex flex-col gap-2 transform -translate-x-2 -translate-y-2">
@@ -68,7 +77,7 @@ export function ModelCard({ model, onModelClick }: ModelCardProps) {
         <img 
           src={model.thumbnail_url || ''}
           alt={model.name}
-          className="w-full h-full object-cover rounded-lg"
+          className={imageClasses}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
         
