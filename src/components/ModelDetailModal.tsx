@@ -6,44 +6,28 @@ import { addToCart } from '../store/cartSlice';
 import { addLike } from '../store/likesSlice';
 import { toggleFavorite } from '../store/favoritesSlice';
 import { RootState } from '../store/store';
-import { publicUrl } from "../lib/supabase"
-import { supabase } from '../lib/supabase';
-import { getStorageUrl } from '../lib/storage';
-import type { ModelCollection, ModelPhoto } from '../lib/supabase';
+import type { Model } from '../lib/api-simple'; // Import Model interface
 
 interface ModelDetailModalProps {
-  model: {
-    id: string;
-    name: string;
-    age: number;
-    nationality: string;
-    height: string;
-    weight: string;
-    specialty: string;
-    hobbies: string;
-    image: string;
-    tagline?: string;
-    bio?: string;
-  };
-  allModels?: any[];
+  model: Model; // Use the Model interface directly
+  allModels?: Model[]; // Use the Model interface directly
   onClose: () => void;
-  onModelChange?: (model: any) => void;
+  onModelChange?: (model: Model) => void;
 }
 
 interface Collection {
   id: string;
   name: string;
   description?: string;
-  photos: ModelPhoto[];
+  photos: string[]; // Array of image URLs
 }
 
 export function ModelDetailModal({ model, allModels = [], onClose, onModelChange }: ModelDetailModalProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [currentCollection, setCurrentCollection] = useState(0);
-  const [currentPhoto, setCurrentPhoto] = useState(0);
-  const [modelPhotos, setModelPhotos] = useState<ModelPhoto[]>([]);
+  const [currentCollectionIndex, setCurrentCollectionIndex] = useState(0);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [hasLiked, setHasLiked] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
@@ -52,119 +36,50 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
   const favorites = useSelector((state: RootState) => state.favorites.items);
   const isFavorite = favorites.some(fav => fav.id === model.id);
 
-  // Fetch model collections and their associated photos
   useEffect(() => {
-    const fetchModelData = async () => {
-      // Start with thumbnail view (no collection selected)
-      setCurrentCollection(-1);
-      setCurrentPhoto(0);
-      
-      try {
-        // Fetch all photos for this model
-        const { data: photosData, error: photosError } = await supabase
-          .from('model_photos')
-          .select('*')
-          .eq('model_id', model.id)
-          .order('sort_order');
+    const newCollections: Collection[] = [];
 
-        // Fetch collections (if any)
-        const { data: collectionsData, error: collectionsError } = await supabase
-          .from('model_collections')
-          .select('id, name, description, cover_image_path')
-          .eq('model_id', model.id)
-          .order('sort_order');
+    // Main Photos Collection
+    if (model.main_photos && model.main_photos.length > 0) {
+      newCollections.push({
+        id: 'main',
+        name: 'Main Photos',
+        photos: model.main_photos,
+      });
+    }
 
-        if (photosError) {
-          console.error('Error fetching photos:', photosError);
-        } else {
-          const processedPhotos = (photosData || []).map(photo => ({
-            ...photo,
-            image_path: photo.image_path.startsWith('http') 
-              ? photo.image_path 
-              : getStorageUrl('models', photo.image_path)
-          }));
-          setModelPhotos(processedPhotos);
-        }
+    // Editorial Photos Collection
+    if (model.editorial_photos && model.editorial_photos.length > 0) {
+      newCollections.push({
+        id: 'editorial',
+        name: 'Editorial',
+        photos: model.editorial_photos,
+      });
+    }
 
-        if (collectionsError) {
-          console.error('Error fetching collections:', collectionsError);
-        }
+    // Commercial Photos Collection
+    if (model.commercial_photos && model.commercial_photos.length > 0) {
+      newCollections.push({
+        id: 'commercial',
+        name: 'Commercial',
+        photos: model.commercial_photos,
+      });
+    }
 
-        // If we have photos from the database, use them
-        if (photosData && photosData.length > 0) {
-          setCollections([{
-            id: 'photos',
-            name: 'Photo Pack',
-            description: `${photosData.length} professional photos`,
-            photos: (photosData || []).map(photo => ({
-              ...photo,
-              image_path: photo.image_path.startsWith('http') 
-                ? photo.image_path 
-                : getStorageUrl('models', photo.image_path)
-            }))
-          }]);
-        } else if (collectionsData && collectionsData.length > 0) {
-          // Fallback to collections if no direct photos
-          const { data: allPhotos, error: allPhotosError } = await supabase
-            .from('model_photos')
-          .select('*')
-          .eq('model_id', model.id)
-          .order('sort_order');
+    // Runway Photos Collection
+    if (model.runway_photos && model.runway_photos.length > 0) {
+      newCollections.push({
+        id: 'runway',
+        name: 'Runway',
+        photos: model.runway_photos,
+      });
+    }
 
-          if (!allPhotosError && allPhotos && allPhotos.length > 0) {
-            // Process collections with photos
-            const collectionsWithPhotos = collectionsData.map((collection, index) => {
-              const photosPerCollection = Math.floor(allPhotos.length / collectionsData.length);
-              const extraPhotos = allPhotos.length % collectionsData.length;
-              const startIndex = index * photosPerCollection + Math.min(index, extraPhotos);
-              const endIndex = startIndex + photosPerCollection + (index < extraPhotos ? 1 : 0);
-              
-              return {
-                id: collection.id,
-                name: collection.name,
-                description: collection.description || `${collection.name} collection`,
-                photos: allPhotos.slice(startIndex, endIndex).map(photo => ({
-                  ...photo,
-                  image_path: photo.image_path.startsWith('http') 
-                    ? photo.image_path 
-                    : getStorageUrl('models', photo.image_path)
-                }))
-              };
-            });
-            setCollections(collectionsWithPhotos);
-          }
-        } else {
-          // No photos found, use model thumbnail as fallback
-          if (model.image) {
-            setCollections([{
-              id: 'default',
-              name: 'Profile Photo',
-              description: 'Main profile photo',
-              photos: [{
-                id: 'default-photo',
-                model_id: model.id,
-                image_path: model.image,
-                caption: model.name,
-                is_thumbnail: true,
-                is_featured: false,
-                sort_order: 0,
-                created_at: new Date().toISOString()
-              }]
-            }]);
-          } else {
-            setCollections([]);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching model data:', error);
-        setCollections([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchModelData();
-  }, [model.id, model.image]);
+    setCollections(newCollections);
+    setCurrentCollectionIndex(0); // Start with the first collection
+    setCurrentPhotoIndex(0); // Start with the first photo in the first collection
+    setLoading(false);
+  }, [model]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -176,52 +91,42 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [currentCollection, currentPhoto]);
+  }, [currentCollectionIndex, currentPhotoIndex, collections]);
 
   const handlePrevPhoto = () => {
-    if (currentCollection === -1) return; // Can't navigate from main photo
-    
-    const currentCollectionPhotos = collections[currentCollection]?.photos || [];
-    
-    if (currentPhoto === -1) {
-      // Can't go back from collection thumbnail
-      return;
-    } else if (currentPhoto === 0) {
-      // Go back to collection thumbnail
-      setCurrentPhoto(-1);
-    } else {
-      // Go to previous photo in same collection
-      setCurrentPhoto(currentPhoto - 1);
+    const currentCollectionPhotos = collections[currentCollectionIndex]?.photos || [];
+    if (currentPhotoIndex > 0) {
+      setCurrentPhotoIndex(currentPhotoIndex - 1);
+    } else if (currentCollectionIndex > 0) {
+      // Go to last photo of previous collection
+      setCurrentCollectionIndex(currentCollectionIndex - 1);
+      setCurrentPhotoIndex((collections[currentCollectionIndex - 1]?.photos || []).length - 1);
     }
   };
 
   const handleNextPhoto = () => {
-    if (currentCollection === -1) return; // Can't navigate from main photo
-    
-    const currentCollectionPhotos = collections[currentCollection]?.photos || [];
-    
-    if (currentPhoto === -1) {
-      // Go from collection thumbnail to first photo
-      setCurrentPhoto(0);
-    } else if (currentPhoto < currentCollectionPhotos.length - 1) {
-      // Go to next photo in same collection
-      setCurrentPhoto(currentPhoto + 1);
+    const currentCollectionPhotos = collections[currentCollectionIndex]?.photos || [];
+    if (currentPhotoIndex < currentCollectionPhotos.length - 1) {
+      setCurrentPhotoIndex(currentPhotoIndex + 1);
+    } else if (currentCollectionIndex < collections.length - 1) {
+      // Go to first photo of next collection
+      setCurrentCollectionIndex(currentCollectionIndex + 1);
+      setCurrentPhotoIndex(0);
     }
-    // Stop at last photo of collection - don't go to next collection
   };
 
   const handleCollectionChange = (index: number) => {
-    setCurrentCollection(index);
-    setCurrentPhoto(-1); // Start with collection thumbnail view
+    setCurrentCollectionIndex(index);
+    setCurrentPhotoIndex(0); // Always start with the first photo of the selected collection
   };
 
   const handleAddToCart = () => {
     dispatch(addToCart({
       id: model.id,
       name: model.name,
-      price: 99.00,
-      image: model.image,
-      specialty: model.specialty
+      price: model.price_usd,
+      image: model.thumbnail_url,
+      specialty: model.specialties[0] || '', // Use first specialty for cart display
     }));
     setIsAdded(true);
   };
@@ -237,8 +142,8 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
     dispatch(toggleFavorite({
       id: model.id,
       name: model.name,
-      image: model.image,
-      specialty: model.specialty
+      image: model.thumbnail_url,
+      specialty: model.specialties[0] || '',
     }));
   };
 
@@ -277,18 +182,9 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
     );
   }
 
-  const currentCollectionData = collections[currentCollection];
-  const currentPhotoData = currentCollectionData?.photos[currentPhoto];
+  const currentCollectionData = collections[currentCollectionIndex];
+  const currentImage = currentCollectionData?.photos[currentPhotoIndex] || model.thumbnail_url;
   
-  // Determine which image to display
-  const currentImage = currentCollection === -1 
-    ? model.image // Main model thumbnail
-    : currentPhoto === -1 
-    ? (currentCollectionData?.photos[0]?.image_path || model.image) // Collection thumbnail (first photo)
-    : (currentPhotoData?.image_path || model.image); // Specific photo in collection
-  
-  // Show thumbnail first, then collection photos
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <div className="relative w-full max-w-[95vw] h-[95vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
@@ -324,7 +220,7 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
             <div className="w-full h-full flex items-center justify-center max-h-[85vh]">
               <img
                 src={currentImage}
-                alt={currentCollectionData ? `${model.name} - ${currentCollectionData.name}` : model.name}
+                alt={model.name}
                 className="max-w-[90%] max-h-[75vh] object-contain rounded-lg shadow-lg"
               />
             </div>
@@ -333,22 +229,22 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
             <button
               onClick={handlePrevPhoto}
               className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-110"
-              disabled={currentCollection === -1 || currentPhoto <= -1}
+              disabled={currentCollectionIndex === 0 && currentPhotoIndex === 0}
             >
               <ChevronLeft className="h-4 w-4 text-gray-800" />
             </button>
             <button
               onClick={handleNextPhoto}
               className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-110"
-              disabled={currentCollection === -1 || currentPhoto === (currentCollectionData?.photos.length || 1) - 1}
+              disabled={currentCollectionIndex === collections.length - 1 && currentPhotoIndex === (currentCollectionData?.photos.length || 1) - 1}
             >
               <ChevronRight className="h-4 w-4 text-gray-800" />
             </button>
 
             {/* Photo Counter */}
-            {currentCollection >= 0 && currentPhoto >= 0 && currentCollectionData && (currentCollectionData?.photos.length || 0) > 1 && (
+            {collections.length > 0 && (
               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-5 py-3 rounded-full text-gray-800 text-sm shadow-lg font-medium">
-                {currentPhoto + 1} / {currentCollectionData?.photos.length || 1}
+                {currentPhotoIndex + 1} / {currentCollectionData?.photos.length || 1}
               </div>
             )}
 
@@ -378,10 +274,12 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
             <div className="space-y-6">
               <div>
                 <h1 className="text-3xl font-serif mb-2">{model.name}</h1>
-                <p className="text-lg text-gray-600 mb-4">{model.tagline || model.specialty}</p>
+                <p className="text-lg text-gray-600 mb-4">{model.tagline || model.specialties[0]}</p>
                 <div className="space-y-2 text-sm text-gray-600">
                   <p><span className="font-medium">Age:</span> {model.age}</p>
                   <p><span className="font-medium">Nationality:</span> {model.nationality}</p>
+                  <p><span className="font-medium">Ethnicity:</span> {model.ethnicity}</p>
+                  <p><span className="font-medium">Gender:</span> {model.gender}</p>
                   <p><span className="font-medium">Height:</span> {model.height}</p>
                   <p><span className="font-medium">Weight:</span> {model.weight}</p>
                 </div>
@@ -392,89 +290,73 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
                 <div>
                   <h3 className="font-medium mb-3">
                     Photo Collections 
-                    {modelPhotos.length > 0 && (
-                      <span className="text-sm text-gray-500 ml-2">
-                        ({modelPhotos.length} photos total)
-                      </span>
-                    )}
+                    <span className="text-sm text-gray-500 ml-2">
+                      ({collections.reduce((acc, col) => acc + col.photos.length, 0)} photos total)
+                    </span>
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setCurrentCollection(-1)}
-                      className={`px-4 py-2 rounded-full text-sm transition ${
-                        currentCollection === -1
-                          ? 'bg-black text-white'
-                          : 'bg-gray-100 hover:bg-gray-200'
-                      }`}
-                    >
-                      Main Photo
-                    </button>
                     {collections.map((collection, index) => (
                       <button
                         key={collection.id}
                         onClick={() => handleCollectionChange(index)}
                         className={`px-4 py-2 rounded-full text-sm transition ${
-                          currentCollection === index
-                            ? 'bg-black text-white'
-                            : 'bg-gray-100 hover:bg-gray-200'
+                          currentCollectionIndex === index
+                            ? 'bg-black text-white' : 'bg-gray-100 hover:bg-gray-200'
                         }`}
                       >
                         {collection.name} ({collection.photos.length})
                       </button>
                     ))}
                   </div>
-                  {currentCollection === -1 ? (
-                    <p className="text-sm text-gray-600 mt-2">Main profile photo</p>
-                  ) : currentPhoto === -1 ? (
-                    <p className="text-sm text-gray-600 mt-2">{currentCollectionData?.name} collection overview</p>
-                  ) : currentCollectionData?.description && (
-                    <p className="text-sm text-gray-600 mt-2">{currentCollectionData.description}</p>
-                  )}
-                  {currentCollection >= 0 && currentPhoto >= 0 && currentPhotoData?.caption && (
-                    <p className="text-sm text-gray-500 mt-2 italic">{currentPhotoData.caption}</p>
-                  )}
                 </div>
               )}
 
               {/* Bio */}
               {model.bio && (
                 <div>
-                  <h3 className="font-medium mb-2">About</h3>
-                  <p className="text-gray-600 text-sm">{model.bio}</p>
+                  <h3 className="font-medium mb-2">Bio</h3>
+                  <p className="text-gray-700 text-sm">{model.bio}</p>
                 </div>
               )}
 
               {/* Hobbies */}
-              <div>
-                <h3 className="font-medium mb-2">Interests</h3>
-                <p className="text-gray-600 text-sm">{model.hobbies}</p>
-              </div>
+              {model.hobbies && (
+                <div>
+                  <h3 className="font-medium mb-2">Hobbies</h3>
+                  <p className="text-gray-700 text-sm">{model.hobbies}</p>
+                </div>
+              )}
 
-              {/* Hire Button */}
-              <div className="space-y-3 pt-4 border-t">
-                {!isAdded ? (
+              {/* Specialties */}
+              {model.specialties && model.specialties.length > 0 && (
+                <div>
+                  <h3 className="font-medium mb-2">Specialties</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {model.specialties.map((specialty, index) => (
+                      <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
+                        {specialty}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pricing & Actions */}
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-2xl font-bold mb-3">${model.price_usd.toFixed(2)}</p>
+                <div className="flex space-x-3">
                   <button
                     onClick={handleAddToCart}
-                    className="w-full bg-rose-300 text-white py-3 rounded-full hover:bg-rose-400 transition flex items-center justify-center"
+                    className={`flex-1 px-6 py-3 rounded-full text-white font-semibold transition-all duration-200 ${
+                      isAdded ? 'bg-green-600 cursor-default' : 'bg-black hover:bg-gray-800'
+                    }`}
+                    disabled={isAdded}
                   >
-                    <Download className="h-5 w-5 mr-2" />
-                    Hire Me – $99.00
+                    {isAdded ? 'Added to Cart' : 'Add to Cart'}
                   </button>
-                ) : (
-                  <div className="text-center">
-                    <p className="text-green-600 mb-2">Added to cart!</p>
-                    <button
-                      onClick={onClose}
-                      className="w-full bg-gray-200 text-gray-800 py-3 rounded-full hover:bg-gray-300 transition"
-                    >
-                      Continue Browsing
-                    </button>
-                  </div>
-                )}
-                <div className="text-center">
-                  <p className="text-xs text-gray-500">
-                    Includes {modelPhotos.length > 0 ? `${modelPhotos.length}` : '30+'} HD images & commercial license
-                  </p>
+                  <button className="flex-1 px-6 py-3 rounded-full bg-gray-200 text-gray-800 font-semibold hover:bg-gray-300 transition-all duration-200">
+                    Preview Pack
+                  </button>
                 </div>
               </div>
             </div>
@@ -484,3 +366,4 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
     </div>
   );
 }
+
