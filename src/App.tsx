@@ -42,27 +42,29 @@ function App() {
         const newModels = modelsData.filter(model => model.is_new);
         const comingSoonModels = modelsData.filter(model => model.is_coming_soon);
 
-        // Combine and deduplicate, prioritizing popular, then new, then coming soon
+        // Select up to 3 unique models for homepage display, prioritizing tags
         let homepageModels: Model[] = [];
         const addedIds = new Set<string>();
 
-        const addModel = (model: Model) => {
-          if (!addedIds.has(model.id)) {
-            homepageModels.push(model);
-            addedIds.add(model.id);
-          }
-        };
+        // Prioritize one 'is_popular' model
+        const popular = modelsData.find(model => model.is_popular && !addedIds.has(model.id));
+        if (popular) { homepageModels.push(popular); addedIds.add(popular.id); }
 
-        popularModels.forEach(addModel);
-        newModels.forEach(addModel);
-        comingSoonModels.forEach(addModel);
+        // Prioritize one 'is_new' model
+        const newModel = modelsData.find(model => model.is_new && !addedIds.has(model.id));
+        if (newModel) { homepageModels.push(newModel); addedIds.add(newModel.id); }
 
-        // Fill up to 3 models if not enough tagged models
+        // Prioritize one 'is_coming_soon' model
+        const comingSoon = modelsData.find(model => model.is_coming_soon && !addedIds.has(model.id));
+        if (comingSoon) { homepageModels.push(comingSoon); addedIds.add(comingSoon.id); }
+
+        // Fill remaining slots up to 3 with other models if needed
         if (homepageModels.length < 3) {
           const remainingSlots = 3 - homepageModels.length;
           const otherModels = modelsData.filter(model => !addedIds.has(model.id));
           for (let i = 0; i < remainingSlots && i < otherModels.length; i++) {
-            addModel(otherModels[i]);
+            homepageModels.push(otherModels[i]);
+            addedIds.add(otherModels[i].id);
           }
         }
 
