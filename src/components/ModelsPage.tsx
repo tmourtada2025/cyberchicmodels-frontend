@@ -146,18 +146,14 @@ export function ModelsPage() {
     return values as string[];
   };
 
-  const getUniqueSpecialties = () => {
-    const specialties = new Set<string>();
-    models.forEach(model => {
-      if (model.specialties && Array.isArray(model.specialties)) {
-        model.specialties.forEach(specialty => specialties.add(specialty));
-      }
-      if (model.specialty) {
-        specialties.add(model.specialty);
-      }
-    });
-    return Array.from(specialties).sort();
-  };
+  const GENDER_OPTIONS = ["Female", "Male"];
+  const ETHNICITY_OPTIONS = [
+    "African", "Asian", "Caucasian", "Hispanic", "Mixed"
+  ];
+  const SPECIALTY_OPTIONS = [
+    "Fashion", "Beauty", "Commercial", "Editorial", "Runway",
+    "Lifestyle", "Portrait", "Athletic", "Avant-garde"
+  ];
 
   if (loading) {
     return (
@@ -244,7 +240,7 @@ export function ModelsPage() {
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                     >
                       <option value="">All Specialties</option>
-                      {getUniqueSpecialties().map(specialty => (
+                      {SPECIALTY_OPTIONS.map(specialty => (
                         <option key={specialty} value={specialty}>{specialty}</option>
                       ))}
                     </select>
@@ -261,7 +257,7 @@ export function ModelsPage() {
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                     >
                       <option value="">All Genders</option>
-                      {getUniqueValues('gender').map(gender => (
+                      {GENDER_OPTIONS.map(gender => (
                         <option key={gender} value={gender}>{gender}</option>
                       ))}
                     </select>
@@ -296,7 +292,7 @@ export function ModelsPage() {
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                     >
                       <option value="">All Ethnicities</option>
-                      {getUniqueValues('ethnicity').map(ethnicity => (
+                      {ETHNICITY_OPTIONS.map(ethnicity => (
                         <option key={ethnicity} value={ethnicity}>{ethnicity}</option>
                       ))}
                     </select>
