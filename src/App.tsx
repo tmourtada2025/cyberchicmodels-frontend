@@ -37,10 +37,36 @@ function App() {
         // Fetch featured models
         const modelsData = await apiService.getModels();
         
-        // Filter for featured models
-        const featuredModelsData = modelsData.filter(model => model.is_featured);
-        
-        setFeaturedModels(featuredModelsData.length > 0 ? featuredModelsData : modelsData.slice(0, 6));
+        // Select models for homepage display based on tags
+        const popularModels = modelsData.filter(model => model.is_popular);
+        const newModels = modelsData.filter(model => model.is_new);
+        const comingSoonModels = modelsData.filter(model => model.is_coming_soon);
+
+        // Combine and deduplicate, prioritizing popular, then new, then coming soon
+        let homepageModels: Model[] = [];
+        const addedIds = new Set<string>();
+
+        const addModel = (model: Model) => {
+          if (!addedIds.has(model.id)) {
+            homepageModels.push(model);
+            addedIds.add(model.id);
+          }
+        };
+
+        popularModels.forEach(addModel);
+        newModels.forEach(addModel);
+        comingSoonModels.forEach(addModel);
+
+        // Fill up to 3 models if not enough tagged models
+        if (homepageModels.length < 3) {
+          const remainingSlots = 3 - homepageModels.length;
+          const otherModels = modelsData.filter(model => !addedIds.has(model.id));
+          for (let i = 0; i < remainingSlots && i < otherModels.length; i++) {
+            addModel(otherModels[i]);
+          }
+        }
+
+        setFeaturedModels(homepageModels.slice(0, 3));
 
       } catch (err) {
         console.error('Error fetching featured content:', err);

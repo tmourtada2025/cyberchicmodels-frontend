@@ -56,17 +56,17 @@ export function ModelCard({ model, onModelClick, variant = 'homepage' }: ModelCa
       onClick={handleCardClick}
     >
       <div className="absolute top-0 left-0 z-10 flex flex-col gap-2 transform -translate-x-2 -translate-y-2">
-        {model.isPopular && (
+        {model.is_popular && (
           <div className="bg-rose-300 text-white py-2 px-3 rounded-tl-lg rounded-br-lg font-medium shadow-lg text-sm">
             Most Popular
           </div>
         )}
-        {(model.isNew || model.is_new) && (
+        {model.is_new && (
           <div className="bg-black text-white py-2 px-3 rounded-tl-lg rounded-br-lg font-medium shadow-lg text-sm">
             New Addition
           </div>
         )}
-        {(model.isComingSoon || model.is_coming_soon) && (
+        {model.is_coming_soon && (
           <div className="bg-red-500 text-white py-2 px-3 rounded-tl-lg rounded-br-lg font-medium shadow-lg text-sm">
             Coming Soon
           </div>
