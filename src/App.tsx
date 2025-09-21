@@ -127,19 +127,6 @@ function App() {
                 </div>
               </div>
 
-                          <ChevronRight className="ml-2 h-5 w-5" />
-                        </Link>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-12">
-                      <p className="text-white mb-4">No styles available</p>
-                      <p className="text-sm text-gray-300">New styles coming soon!</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* What's Included Section */}
               <div className="py-12 bg-black text-white">
                 <div className="max-w-7xl mx-auto px-4">
