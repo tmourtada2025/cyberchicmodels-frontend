@@ -13,7 +13,6 @@ export interface Model {
   hobbies: string;
   specialties: string[];
   thumbnail_url: string;
-  is_featured: boolean;
   is_new: boolean;
   is_popular: boolean;
   is_coming_soon: boolean;
@@ -39,7 +38,6 @@ export const apiService = {
         hobbies: "Sailing, oil painting, Classical music",
         specialties: ["Luxury runway", "high-fashion", "swimwear"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/av01-aria-valen-thumbnail.webp",
-        is_featured: false,
         is_new: false,
         is_popular: true,
         is_coming_soon: false,
@@ -60,7 +58,6 @@ export const apiService = {
         hobbies: "Sketching fashion concepts, travel photography",
         specialties: ["Beauty close-ups", "product modeling"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/nv01-nova-vion-thumbnail.webp",
-        is_featured: false,
         is_new: false,
         is_popular: false,
         is_coming_soon: false,
@@ -81,7 +78,6 @@ export const apiService = {
         hobbies: "Light yoga and stretching, morning journaling",
         specialties: ["Contemporary lifestyle", "morning editorials"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/fm01-freja-madsen-thumbnail.webp",
-        is_featured: false,
         is_new: true,
         is_popular: false,
         is_coming_soon: false,
@@ -102,7 +98,6 @@ export const apiService = {
         hobbies: "Architecture, interior design, cultural photography",
         specialties: ["Editorial", "high fashion", "luxury jewelry"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/nea01-noura-el-amine-thumbnail.webp",
-        is_featured: false,
         is_new: false,
         is_popular: false,
         is_coming_soon: false,
@@ -123,9 +118,8 @@ export const apiService = {
         hobbies: "Jewelry design, luxury travel, fine dining",
         specialties: ["Luxury lifestyle", "jewelry campaigns"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/zs01-zeina-s-thumbnail.webp",
-        is_featured: false,
         is_new: false,
-        is_popular: true,
+        is_popular: false,
         is_coming_soon: false,
         price_usd: 99.0,
       },
@@ -144,7 +138,6 @@ export const apiService = {
         hobbies: "Art history, classical music, cultural events",
         specialties: ["Editorial fashion", "luxury campaigns"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/ln01-layal-n-thumbnail.webp",
-        is_featured: false,
         is_new: false,
         is_popular: false,
         is_coming_soon: false,
@@ -165,7 +158,6 @@ export const apiService = {
         hobbies: "Ballet, contemporary dance, fashion design",
         specialties: ["Runway", "catwalk", "fashion shows"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/mi01-mariia-ivanova-thumbnail.webp",
-        is_featured: false,
         is_new: false,
         is_popular: false,
         is_coming_soon: true,
@@ -186,7 +178,6 @@ export const apiService = {
         hobbies: "Skiing, dancing, photography",
         specialties: ["Editorial", "minimalist", "natural beauty"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/zw01-zofia-wrobel-thumbnail.webp",
-        is_featured: false,
         is_new: false,
         is_popular: false,
         is_coming_soon: false,
@@ -207,8 +198,7 @@ export const apiService = {
         hobbies: "Fashion styling, luxury travel, wine tasting",
         specialties: ["Luxury lifestyle", "glamour", "high-end fashion"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/vr01-vanessa-rivera-thumbnail.webp",
-        is_featured: false,
-        is_new: true,
+        is_new: false,
         is_popular: false,
         is_coming_soon: false,
         price_usd: 99.0,
@@ -228,9 +218,8 @@ export const apiService = {
         hobbies: "Contemporary art, fashion photography, cultural events",
         specialties: ["Fashion", "catwalk", "contemporary style"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/ev01-elara-vey-thumbnail.webp",
-        is_featured: false,
         is_new: false,
-        is_popular: true,
+        is_popular: false,
         is_coming_soon: false,
         price_usd: 99.0,
       },
@@ -249,7 +238,6 @@ export const apiService = {
         hobbies: "Travel, singing, fashion",
         specialties: ["Editorial", "e-commerce", "beauty campaigns"],
         thumbnail_url: "https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/ch01-camila-huaman-thumbnail.webp",
-        is_featured: false,
         is_new: false,
         is_popular: false,
         is_coming_soon: false,
@@ -258,4 +246,3 @@ export const apiService = {
     ];
   },
 };
-
