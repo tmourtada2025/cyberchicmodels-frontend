@@ -9,7 +9,7 @@ const DB_CONFIG = {
   password: 'CyberChic2024'
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = 'https://cyberchicmodels-api-719300876829.us-central1.run.app';
 const API_KEY = import.meta.env.VITE_API_KEY;
 
 // Create axios instance with default config
@@ -90,7 +90,7 @@ export interface HeroSlide {
 async function queryHeroSlides(): Promise<HeroSlide[]> {
   try {
     // Use a serverless function or direct query
-    const response = await fetch('https://api.cyberchicmodels.ai/hero-slides', {
+    const response = await fetch('https://cyberchicmodels-api-719300876829.us-central1.run.app/hero-slides', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

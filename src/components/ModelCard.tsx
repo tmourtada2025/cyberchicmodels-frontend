@@ -20,7 +20,7 @@ export function ModelCard({ model, onModelClick, variant = 'homepage' }: ModelCa
 
   const imageClasses = variant === 'homepage'
     ? 'w-full h-full object-cover rounded-lg'
-    : 'w-full h-full object-contain rounded-lg bg-gray-100';
+    : 'w-full h-full object-cover rounded-lg';
 
   const dispatch = useDispatch();
   const [hasLiked, setHasLiked] = useState(false);
