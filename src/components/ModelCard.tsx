@@ -19,8 +19,8 @@ export function ModelCard({ model, onModelClick, variant = 'homepage' }: ModelCa
     : 'relative w-[350px] h-[500px] group cursor-pointer';
 
   const imageClasses = variant === 'homepage'
-    ? 'w-full h-full object-cover rounded-lg'
-    : 'w-full h-full object-cover rounded-lg';
+    ? 'w-full h-full object-cover rounded-lg select-none pointer-events-none'
+    : 'w-full h-full object-cover rounded-lg select-none pointer-events-none';
 
   const dispatch = useDispatch();
   const [hasLiked, setHasLiked] = useState(false);
@@ -99,7 +99,7 @@ export function ModelCard({ model, onModelClick, variant = 'homepage' }: ModelCa
           alt={model.name}
           className={imageClasses}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-80" />
         
         {/* Model Info - Always Visible */}
         <div className="absolute bottom-0 left-0 right-0 p-4">
