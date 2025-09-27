@@ -4,7 +4,7 @@ import { Menu, X, ShoppingCart } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import { CartIcon } from './CartIcon';
-import { AdminKeyIcon } from './AdminKeyIcon';
+
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,11 +32,11 @@ export function Navbar() {
               )}
             </Link>
             <CartIcon />
-            <AdminKeyIcon />
+
           </div>
           <div className="md:hidden flex items-center space-x-4">
             <CartIcon />
-            <AdminKeyIcon />
+
             <button onClick={() => setIsOpen(!isOpen)}>
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>

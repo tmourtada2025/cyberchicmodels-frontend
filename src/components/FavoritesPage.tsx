@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Star, ArrowLeft } from 'lucide-react';
 import { Footer } from './Footer';
 import { ModelDetailModal } from './ModelDetailModal';
-import { StyleModal } from './StyleModal';
+
 
 interface StyleItem {
   id: string;
@@ -167,12 +167,7 @@ export function FavoritesPage() {
           onModelChange={handleModelChange}
         />
       )}
-      {selectedStyle && (
-        <StyleModal
-          style={selectedStyle}
-          onClose={() => setSelectedStyle(null)}
-        />
-      )}
+
     </div>
   );
 }
