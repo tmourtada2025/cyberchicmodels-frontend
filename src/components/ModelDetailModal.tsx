@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Download, Heart, Star, ArrowLeft } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, Heart, Star, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { addToCart } from '../store/cartSlice';
 import { addLike } from '../store/likesSlice';
 import { toggleFavorite } from '../store/favoritesSlice';
 import { RootState } from '../store/store';
-import type { Model } from '../lib/api-simple'; // Import Model interface
+import { useImageLoader } from '../hooks/useImageLoader';
+import type { Model } from '../lib/api'; // Import Model interface
 
 interface ModelDetailModalProps {
   model: Model; // Use the Model interface directly
@@ -183,7 +184,13 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
   }
 
   const currentCollectionData = collections[currentCollectionIndex];
-  const currentImage = currentCollectionData?.photos[currentPhotoIndex] || model.thumbnail_url;
+  const currentImageRaw = currentCollectionData?.photos[currentPhotoIndex] || model.thumbnail_url || "";
+
+  const { src: imageSrc, loading: imageLoading, error: imageError, retry: retryImage } = useImageLoader(currentImageRaw, {
+    cacheBust: true,
+    retryCount: 3,
+    timeout: 15000
+  });
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
@@ -218,11 +225,28 @@ export function ModelDetailModal({ model, allModels = [], onClose, onModelChange
           {/* Image Section */}
           <div className="lg:col-span-2 relative bg-gray-50 flex items-center justify-center p-6">
             <div className="w-full h-full flex items-center justify-center max-h-[85vh]">
-              <img
-                src={currentImage}
-                alt={model.name}
-                className="max-w-[90%] max-h-[75vh] object-contain rounded-lg shadow-lg"
-              />
+              {imageLoading ? (
+                <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-lg shadow-lg">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
+                </div>
+              ) : imageError ? (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 rounded-lg shadow-lg text-gray-500">
+                  <p className="text-lg mb-4">Image failed to load</p>
+                  <button
+                    onClick={retryImage}
+                    className="inline-flex items-center px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <img
+                  src={imageSrc}
+                  alt={model.name}
+                  className="max-w-[90%] max-h-[75vh] object-contain rounded-lg shadow-lg"
+                />
+              )}
             </div>
 
             {/* Navigation Arrows */}

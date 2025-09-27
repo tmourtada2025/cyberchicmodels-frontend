@@ -18,8 +18,8 @@ import { Footer } from './components/Footer';
 import { ModelCard } from './components/ModelCard';
 import { ModelDetailModal } from './components/ModelDetailModal';
 import { StylesCarousel } from './components/StylesCarousel';
-import { apiService } from './lib/api-simple';
-import type { Model } from './lib/api-simple';
+import { getModels } from './lib/api';
+import type { Model } from './lib/api';
 
 function App() {
   const [featuredModels, setFeaturedModels] = useState<Model[]>([]);
@@ -35,7 +35,7 @@ function App() {
         setError(null);
 
         // Fetch featured models
-        const modelsData = await apiService.getModels();
+        const modelsData = await getModels();
         
         // Select models for homepage display based on tags
         const popularModels = modelsData.filter(model => model.is_popular);

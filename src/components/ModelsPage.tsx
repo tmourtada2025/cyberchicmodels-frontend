@@ -4,8 +4,8 @@ import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { ModelCard } from './ModelCard';
 import { ModelDetailModal } from './ModelDetailModal';
 import { Footer } from './Footer';
-import { apiService } from '../lib/api-simple';
-import type { Model } from '../lib/api-simple';
+import { getModels } from '../lib/api';
+import type { Model } from '../lib/api';
 
 interface FilterState {
   specialty: string;
@@ -38,7 +38,7 @@ export function ModelsPage() {
       setLoading(true);
       setError(null);
       try {
-        const data = await apiService.getModels({ limit: 100 });
+        const data = await getModels();
         setModels(data);
         setFilteredModels(data);
       } catch (err) {
@@ -121,7 +121,7 @@ export function ModelsPage() {
   };
 
   const handleModelClick = (model: Model) => {
-    setSelectedModel(model);
+    setSelectedModel({ ...model, cache_buster: new Date().getTime() });
   };
 
   const handleCloseModal = () => {

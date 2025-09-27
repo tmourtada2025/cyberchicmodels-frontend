@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../lib/api';
-import type { Model } from '../lib/supabase';
+import type { Model } from '../lib/api';
 
 export function SimpleModelsCheck() {
   const [models, setModels] = useState<Model[]>([]);

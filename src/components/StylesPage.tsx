@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { addToCart } from '../store/cartSlice';
 import { ArrowLeft, X, Search, RefreshCw } from 'lucide-react';
 import { Footer } from './Footer';
-import { apiService } from '../lib/api';
+import { getStyles } from '../lib/api';
 import type { Style } from '../lib/api';
 
 interface FilterState {
@@ -45,7 +45,7 @@ export function StylesPage() {
       try {
         setLoading(true);
         setError(null);
-        const data = await apiService.getStyles({ limit: 100 });
+        const data = await getStyles();
         setStyles(data);
         setFilteredStyles(data);
         

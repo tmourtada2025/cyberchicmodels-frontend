@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Download, ChevronDown } from 'lucide-react';
-import { apiService } from '../lib/api';
+import { getHeroSlides } from '../lib/api';
 import type { HeroSlide } from '../lib/api';
 
 interface HeroCarouselProps {}
@@ -18,7 +18,7 @@ export function HeroCarousel() {
     const fetchHeroSlides = async () => {
       try {
         setLoading(true);
-        const data = await apiService.getHeroSlides();
+        const data = await getHeroSlides();
         setSlides(data && data.length > 0 ? data : getDefaultSlides());
       } catch (error) {
         console.warn('Error fetching hero slides, using fallback:', error);

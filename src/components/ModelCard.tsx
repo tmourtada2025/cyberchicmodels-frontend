@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Heart, Star } from 'lucide-react';
+import { Heart, Star, RefreshCw } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addLike } from '../store/likesSlice';
 import { toggleFavorite } from '../store/favoritesSlice';
 import { RootState } from '../store/store';
+import { useModelImage } from '../hooks/useImageLoader';
 
 import type { Model } from '../lib/api';
 
@@ -19,14 +20,17 @@ export function ModelCard({ model, onModelClick, variant = 'homepage' }: ModelCa
     : 'relative w-[350px] h-[500px] group cursor-pointer';
 
   const imageClasses = variant === 'homepage'
-    ? 'w-full h-full object-cover rounded-lg select-none pointer-events-none'
-    : 'w-full h-full object-cover rounded-lg select-none pointer-events-none';
+    ? 'w-full h-full object-cover rounded-lg'
+    : 'w-full h-full object-cover rounded-lg';
 
   const dispatch = useDispatch();
   const [hasLiked, setHasLiked] = useState(false);
   const likes = useSelector((state: RootState) => state.likes.likes[model.id] || 0);
   const favorites = useSelector((state: RootState) => state.favorites.items);
   const isFavorite = favorites.some(fav => fav.id === model.id);
+
+  // Use the image loading hook
+  const { src: imageSrc, loading: imageLoading, imageError, retry: retryImage } = useModelImage(model);
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -94,12 +98,37 @@ export function ModelCard({ model, onModelClick, variant = 'homepage' }: ModelCa
       </div>
       
       <div className="relative w-full h-full">
-        <img 
-          src={model.thumbnail_url || ''}
-          alt={model.name}
-          className={imageClasses}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-80" />
+        {imageLoading ? (
+          <div className={`${imageClasses} bg-gray-200 flex items-center justify-center`}>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
+          </div>
+        ) : imageError ? (
+          <div className={`${imageClasses} bg-gray-100 flex flex-col items-center justify-center text-gray-500`}>
+            <div className="text-center p-4">
+              <p className="text-sm mb-2">Image failed to load</p>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  retryImage();
+                }}
+                className="inline-flex items-center px-3 py-1 bg-rose-500 text-white text-xs rounded hover:bg-rose-600 transition-colors"
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Retry
+              </button>
+            </div>
+          </div>
+        ) : (
+          <img 
+            src={imageSrc}
+            alt={model.name}
+            className={imageClasses}
+            onError={() => {
+              console.error('Image failed to load:', imageSrc);
+            }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-transparent" />
         
         {/* Model Info - Always Visible */}
         <div className="absolute bottom-0 left-0 right-0 p-4">

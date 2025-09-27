@@ -1,487 +1,97 @@
-// API service for CyberChicModels.ai
+// src/lib/api.ts
 import axios from 'axios';
 
-// Direct database connection for hero slides
-const DB_CONFIG = {
-  host: '34.72.97.207',
-  database: 'cyberchicmodels',
-  user: 'postgres',
-  password: 'CyberChic2024'
-};
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://cyberchic-api-efogygtw5a-uc.a.run.app';
 
-const API_BASE_URL = 'https://cyberchicmodels-api-719300876829.us-central1.run.app';
-const API_KEY = import.meta.env.VITE_API_KEY;
-
-// Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-    ...(API_KEY && { 'Authorization': `Bearer ${API_KEY}` })
-  }
+  timeout: 10000,
 });
 
-// Types
 export interface Model {
   id: string;
-  slug?: string;
   name: string;
-  tagline?: string;
+  code?: string;
+  age?: number;
   nationality?: string;
   ethnicity?: string;
   gender?: string;
-  age?: number;
   height?: string;
   weight?: string;
-  bio?: string;
+  specialty?: string;
   hobbies?: string;
-  specialties?: string[];
-  thumbnail_url?: string;
-  is_featured?: boolean;
-  is_new?: boolean;
-  is_popular?: boolean;
-  is_coming_soon?: boolean;
-  price_usd?: number;
-  json_biometric_data?: any;
-  created_at?: string;
-  updated_at?: string;
+  thumbnail_url: string;
+  pack_price: number;
+  pack_currency: string;
+  is_popular: boolean;
+  is_new: boolean;
+  is_coming_soon: boolean;
+  is_featured: boolean;
+  images?: ModelImage[];
 }
 
-export interface ModelCollection {
-  id: string;
-  model_id: string;
-  title: string;
-  description?: string;
-  cover_url?: string;
-  images: string[];
-  director_style?: string;
-  theme?: string;
-  created_at?: string;
+export interface ModelImage {
+  image_url: string;
+  image_type: 'thumbnail' | 'gallery' | 'hero';
+  sort_order: number;
 }
 
 export interface Style {
   id: string;
-  slug?: string;
   name: string;
-  clothing_type?: string;
-  style_theme?: string;
   description?: string;
-  price_usd?: number;
-  image_url?: string;
-  back_image_url?: string;
-  colors: string[];
-  mannequin_renders?: string[];
-  created_at?: string;
+  image_url: string;
+  price: number;
+  currency: string;
 }
 
 export interface HeroSlide {
-  id: string;
-  title: string;
+  id: number;
+  title?: string;
   subtitle?: string;
-  description?: string;
-  background_image_url?: string;
-  button_text: string;
-  button_link: string;
-  sort_order?: number;
-  is_active?: boolean;
+  image_url: string;
+  sort_order: number;
 }
 
-// Direct database query function for hero slides
-async function queryHeroSlides(): Promise<HeroSlide[]> {
+// API functions
+export const getModels = async (): Promise<Model[]> => {
   try {
-    // Use a serverless function or direct query
-    const response = await fetch('https://cyberchicmodels-api-719300876829.us-central1.run.app/hero-slides', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: `
-          SELECT 
-            id::text,
-            title,
-            subtitle,
-            description,
-            CONCAT('https://storage.googleapis.com/cyberchicmodels-media/', background_image_path) as background_image_url,
-            button_text,
-            button_link,
-            display_order as sort_order,
-            is_active
-          FROM hero_slides 
-          WHERE is_active = true
-          ORDER BY display_order
-        `,
-        config: DB_CONFIG
-      })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.rows || [];
-    }
+    const response = await api.get('/api/models');
+    return response.data;
   } catch (error) {
-    console.warn('Database query failed:', error);
-  }
-
-  // Fallback to default slides
-  return [
-    {
-      id: '1',
-      title: 'AI Fashion Models for a Digital World',
-      subtitle: '',
-      description: 'Browse and download ready-to-use model packs — for campaigns, content, or training your own AI.',
-      background_image_url: 'https://storage.googleapis.com/cyberchicmodels-media/hero-slides/backgrounds/slide1.webp',
-      button_text: 'Browse Models',
-      button_link: '/models',
-      sort_order: 1,
-      is_active: true
-    },
-    {
-      id: '2',
-      title: 'Download-Ready Model Packs',
-      subtitle: '',
-      description: 'Each pack includes 30+ images and short videos — perfect for AI training, mockups, or content creation.',
-      background_image_url: 'https://storage.googleapis.com/cyberchicmodels-media/hero-slides/backgrounds/slide2.webp',
-      button_text: 'Browse Models',
-      button_link: '/models',
-      sort_order: 2,
-      is_active: true
-    },
-    {
-      id: '3',
-      title: 'Built for Creators, Brands & AI Developers',
-      subtitle: '',
-      description: 'From designers to marketers, anyone can train or feature their own AI model using our stylish assets.',
-      background_image_url: 'https://storage.googleapis.com/cyberchicmodels-media/hero-slides/backgrounds/slide3.webp',
-      button_text: 'Browse Models',
-      button_link: '/models',
-      sort_order: 3,
-      is_active: true
-    },
-    {
-      id: '4',
-      title: 'A Continuously Evolving Model Roster',
-      subtitle: '',
-      description: 'We\'re adding new AI-generated models weekly — across categories, ethnicities, and moods.',
-      background_image_url: 'https://storage.googleapis.com/cyberchicmodels-media/hero-slides/backgrounds/slide4.webp',
-      button_text: 'Browse Models',
-      button_link: '/models',
-      sort_order: 4,
-      is_active: true
-    }
-  ];
-}
-
-// API Functions
-export const apiService = {
-  // Models
-  async getModels(params?: { limit?: number; featured?: boolean; new?: boolean; popular?: boolean }) {
-    try {
-      const response = await api.get('/models', { params });
-      return response.data as Model[];
-    } catch (error) {
-      console.warn('API call failed, using fallback data:', error);
-      // Return simple test models
-      return [
-        {
-          id: 'av01',
-          slug: 'aria-valen',
-          name: 'Aria Valen',
-          tagline: 'Luxury Runway Specialist',
-          nationality: 'Italian',
-          ethnicity: 'Caucasian',
-          gender: 'Female',
-          age: 27,
-          height: '178cm',
-          weight: '56kg',
-          bio: 'Professional luxury runway and high-fashion model with expertise in swimwear and resort wear campaigns. Aria brings sophistication and elegance to every shoot with her classical training and artistic sensibilities.',
-          hobbies: 'Sailing, oil painting, Classical music and modern jazz fusion',
-          specialties: ['Luxury runway presentations', 'high-fashion lookbooks', 'Commercial swimwear & resort wear'],
-          thumbnail_url: 'https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/av01-aria-valen-thumbnail.webp',
-          is_featured: true,
-          is_new: false,
-          is_popular: false,
-          is_coming_soon: false,
-          price_usd: 99.00
-        },
-        {
-          id: 'nv01',
-          slug: 'nova-vion',
-          name: 'Nova Vion',
-          tagline: 'Beauty & Product Specialist',
-          nationality: 'American',
-          ethnicity: 'Caucasian',
-          gender: 'Female',
-          age: 24,
-          height: '176cm',
-          weight: '58kg',
-          bio: 'Specialized beauty and premium product model with a keen eye for fashion concepts and photography. Nova excels in close-up beauty work and brings creativity to every product campaign.',
-          hobbies: 'Sketching fashion concepts, travel photography, pilates & barre',
-          specialties: ['Beauty close-ups', 'premium product modeling'],
-          thumbnail_url: 'https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/nv01-nova-vion-thumbnail.webp',
-          is_featured: false,
-          is_new: false,
-          is_popular: true,
-          is_coming_soon: false,
-          price_usd: 99.00
-        },
-        {
-          id: 'fm01',
-          slug: 'freja-madsen',
-          name: 'Freja Madsen',
-          tagline: 'Contemporary Lifestyle',
-          nationality: 'Finnish',
-          ethnicity: 'Caucasian',
-          gender: 'Female',
-          age: 20,
-          height: '180cm',
-          weight: '56kg',
-          bio: 'Young contemporary lifestyle model specializing in morning editorials and wellness campaigns. Freja brings fresh energy and natural beauty to lifestyle and wellness brands.',
-          hobbies: 'Light yoga and stretching, morning journaling',
-          specialties: ['Contemporary lifestyle', 'morning editorials'],
-          thumbnail_url: 'https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/fm01-freja-madsen-thumbnail.webp',
-          is_featured: false,
-          is_new: true,
-          is_popular: false,
-          is_coming_soon: false,
-          price_usd: 99.00
-        },
-        {
-          id: 'nea01',
-          slug: 'noura-el-amine',
-          name: 'Noura El Amine',
-          tagline: 'Editorial & High Fashion',
-          nationality: 'Egyptian',
-          ethnicity: 'Arab',
-          gender: 'Female',
-          age: 25,
-          height: '168cm',
-          weight: '70kg',
-          bio: 'Editorial and high fashion model with glamorous appeal and strong cultural background. Noura brings Middle Eastern elegance and modern sophistication to fashion campaigns.',
-          hobbies: 'Belly dancing, running, shopping',
-          specialties: ['Editorial', 'high fashion', 'glamorous'],
-          thumbnail_url: 'https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/nea01-noura-el-amine-thumbnail.webp',
-          is_featured: true,
-          is_new: false,
-          is_popular: false,
-          is_coming_soon: false,
-          price_usd: 99.00
-        },
-        {
-          id: 'zs01',
-          slug: 'zeina-s',
-          name: 'Zeina S',
-          tagline: 'Luxury Lifestyle & Jewelry',
-          nationality: 'Lebanese',
-          ethnicity: 'Arab',
-          gender: 'Female',
-          age: 28,
-          height: '171cm',
-          weight: '54kg',
-          bio: 'Editorial model specializing in jewelry, luxury lifestyle, and beauty campaigns with adventurous spirit. Zeina combines elegance with an active lifestyle, perfect for luxury and adventure brands.',
-          hobbies: 'Dancing, travel, climbing',
-          specialties: ['Editorial', 'jewelry & luxury lifestyle', 'beauty campaigns'],
-          thumbnail_url: 'https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/zs01-zeina-s-thumbnail.webp',
-          is_featured: false,
-          is_new: false,
-          is_popular: true,
-          is_coming_soon: false,
-          price_usd: 99.00
-        },
-        {
-          id: 'ln01',
-          slug: 'layal-n',
-          name: 'Layal N',
-          tagline: 'Refined Elegance',
-          nationality: 'Lebanese',
-          ethnicity: 'Arab',
-          gender: 'Female',
-          age: 24,
-          height: '172cm',
-          weight: '54kg',
-          bio: 'Refined editorial fashion model with expertise in luxury lifestyle campaigns and elegant branding. Layal brings French sophistication and artistic flair to high-end fashion shoots.',
-          hobbies: 'Modern dance, pilates, sketching interiors, perfume collecting, watching french cinema',
-          specialties: ['Editorial fashion', 'luxury lifestyle campaigns', 'refined elegance branding'],
-          thumbnail_url: 'https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/ln01-layal-n-thumbnail.webp',
-          is_featured: true,
-          is_new: false,
-          is_popular: false,
-          is_coming_soon: false,
-          price_usd: 99.00
-        },
-        {
-          id: 'ev01',
-          slug: 'elara-vey',
-          name: 'Elara Vey',
-          tagline: 'Fashion & Catwalk',
-          nationality: 'French',
-          ethnicity: 'Caucasian',
-          gender: 'Female',
-          age: 25,
-          height: '168cm',
-          weight: '52kg',
-          bio: 'French fashion and catwalk model with classical training in ballet and artistic sensibilities. Elara brings Parisian chic and graceful movement to fashion shows and editorial campaigns.',
-          hobbies: 'Ballet, yoga, vintage photography, reading',
-          specialties: ['Fashion & catwalk'],
-          thumbnail_url: 'https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/ev01-elara-vey-thumbnail.webp',
-          is_featured: true,
-          is_new: false,
-          is_popular: false,
-          is_coming_soon: false,
-          price_usd: 99.00
-        },
-        {
-          id: 'vr01',
-          slug: 'vanessa-rivera',
-          name: 'Vanessa Rivera',
-          tagline: 'Luxury Lifestyle & Glamour',
-          nationality: 'Italian',
-          ethnicity: 'Caucasian',
-          gender: 'Female',
-          age: 23,
-          height: '176cm',
-          weight: '54kg',
-          bio: 'Young luxury lifestyle and glamour model with sophisticated taste and European cultural appreciation. Vanessa embodies Italian elegance and brings refined luxury to evening wear and lifestyle campaigns.',
-          hobbies: 'Exploring historic European cities, yoga & pilates, gourmet cooking & wine tasting',
-          specialties: ['Luxury lifestyle campaigns', 'glamour & evening wear modeling'],
-          thumbnail_url: 'https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/vr01-vanessa-rivera-thumbnail.webp',
-          is_featured: false,
-          is_new: true,
-          is_popular: true,
-          is_coming_soon: false,
-          price_usd: 99.00
-        },
-        {
-          id: 'ch01',
-          slug: 'camila-huaman',
-          name: 'Camila Huaman',
-          tagline: 'Editorial & E-commerce',
-          nationality: 'Peruvian',
-          ethnicity: 'Latino',
-          gender: 'Female',
-          age: 29,
-          height: '172cm',
-          weight: '54kg',
-          bio: 'Versatile editorial and e-commerce model with strong beauty campaign experience and musical talents. Camila brings Latin American warmth and versatility to fashion and beauty brands.',
-          hobbies: 'Travel, singing, fashion',
-          specialties: ['Editorial', 'fashion e-commerce', 'beauty campaigns'],
-          thumbnail_url: 'https://storage.googleapis.com/cyberchicmodels-media/models/thumbnails/ch01-camila-huaman-thumbnail.webp',
-          is_featured: false,
-          is_new: false,
-          is_popular: true,
-          is_coming_soon: false,
-          price_usd: 99.00
-        }
-      ];
-    }
-  },
-
-  async getModel(idOrSlug: string) {
-    const response = await api.get(`/models/${idOrSlug}`);
-    return response.data as Model;
-  },
-
-  async createModel(modelData: Partial<Model>) {
-    const response = await api.post('/models', modelData);
-    return response.data as Model;
-  },
-
-  async updateModel(id: string, modelData: Partial<Model>) {
-    const response = await api.put(`/models/${id}`, modelData);
-    return response.data as Model;
-  },
-
-  async deleteModel(id: string) {
-    await api.delete(`/models/${id}`);
-  },
-
-  // Model Collections
-  async getModelCollections(modelId: string) {
-    try {
-      const response = await api.get(`/models/${modelId}/collections`);
-      return response.data as ModelCollection[];
-    } catch (error) {
-      console.warn('API call failed:', error);
-      return [];
-    }
-  },
-
-  async createModelCollection(modelId: string, collectionData: Partial<ModelCollection>) {
-    const response = await api.post(`/models/${modelId}/collections`, collectionData);
-    return response.data as ModelCollection;
-  },
-
-  // Styles
-  async getStyles(params?: { limit?: number }) {
-    try {
-      const response = await api.get('/styles', { params });
-      return response.data as Style[];
-    } catch (error) {
-      console.warn('API call failed:', error);
-      return [];
-    }
-  },
-
-  async getStyle(idOrSlug: string) {
-    const response = await api.get(`/styles/${idOrSlug}`);
-    return response.data as Style;
-  },
-
-  async createStyle(styleData: Partial<Style>) {
-    const response = await api.post('/styles', styleData);
-    return response.data as Style;
-  },
-
-  // Hero Slides - Updated to use direct database connection with fallback
-  async getHeroSlides() {
-    return await queryHeroSlides();
-  },
-
-  // File Upload
-  async uploadFile(file: File, bucket: string) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('bucket', bucket);
-    
-    try {
-      const response = await api.post('/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data.url as string;
-    } catch (error) {
-      console.warn('Upload failed:', error);
-      throw error;
-    }
-  },
-
-  // AI Generation
-  async generateModel(biometricData: any) {
-    const response = await api.post('/ai/generate-model', { biometric_data: biometricData });
-    return response.data;
-  },
-
-  async generateCollection(modelId: string, directorStyle: string, theme: string) {
-    const response = await api.post('/ai/generate-collection', {
-      model_id: modelId,
-      director_style: directorStyle,
-      theme: theme
-    });
-    return response.data;
-  },
-
-  // Trend Analysis
-  async analyzeTrends() {
-    const response = await api.get('/ai/analyze-trends');
-    return response.data;
-  },
-
-  // Outfit Extraction
-  async extractOutfits(collectionId: string) {
-    const response = await api.post(`/ai/extract-outfits/${collectionId}`);
-    return response.data;
+    console.error('Error fetching models:', error);
+    return [];
   }
 };
 
-export default apiService;
+export const getModel = async (id: string): Promise<Model | null> => {
+  try {
+    const response = await api.get(`/api/models/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching model:', error);
+    return null;
+  }
+};
+
+export const getHeroSlides = async (): Promise<HeroSlide[]> => {
+  try {
+    const response = await api.get('/api/hero-slides');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching hero slides:', error);
+    return [];
+  }
+};
+
+export const getStyles = async (): Promise<Style[]> => {
+  try {
+    const response = await api.get('/api/styles');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching styles:', error);
+    return [];
+  }
+};
+
+export default api;
